@@ -5,11 +5,8 @@ import StockSearch from '../../components/stocks/StockSearch';
 import StockLogo from '../../components/stocks/StockLogo';
 import {
   useWatchlists,
-  usePortfolios,
-  useTransactions,
   useStockQuotes,
   useNews,
-  computePortfolioSummary,
   formatCurrency,
   formatPercent,
 } from '@alpha-stocks/core';
@@ -24,11 +21,8 @@ function timeAgo(ts: number): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export default function DashboardScreen() {
+export default function HomeScreen() {
   const router = useRouter();
-  const { data: portfolios } = usePortfolios();
-  const firstId = portfolios?.[0]?.id || '';
-  const { data: transactions } = useTransactions(firstId);
   const { data: watchlists } = useWatchlists();
   const { data: news } = useNews();
 
@@ -38,18 +32,7 @@ export default function DashboardScreen() {
     return [...new Set(s)].slice(0, 15);
   }, [watchlists]);
 
-  const portfolioSymbols = useMemo(() => {
-    if (!transactions) return [];
-    return [...new Set(transactions.map((t) => t.symbol))];
-  }, [transactions]);
-
   const { data: wlQuotes } = useStockQuotes(allSymbols);
-  const { data: pfQuotes } = useStockQuotes(portfolioSymbols);
-
-  const summary = useMemo(() => {
-    if (!transactions || !pfQuotes) return null;
-    return computePortfolioSummary(transactions, new Map(pfQuotes.map((q) => [q.symbol, q])));
-  }, [transactions, pfQuotes]);
 
   const topMovers = useMemo(() => {
     if (!wlQuotes) return [];
@@ -58,19 +41,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Home</Text>
       <StockSearch />
-
-      {/* Portfolio snapshot */}
-      {summary && (
-        <TouchableOpacity style={styles.card} onPress={() => router.push(`/portfolio/${firstId}` as never)}>
-          <Text style={styles.sectionLabel}>{portfolios?.[0]?.name || 'Portfolio'}</Text>
-          <Text style={styles.bigValue}>{formatCurrency(summary.totalValue)}</Text>
-          <Text style={[styles.changeText, { color: summary.dayChange >= 0 ? '#16a34a' : '#dc2626' }]}>
-            {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
-          </Text>
-        </TouchableOpacity>
-      )}
 
       {/* Top movers */}
       {topMovers.length > 0 && (
@@ -103,7 +74,7 @@ export default function DashboardScreen() {
           {news.slice(0, 4).map((n) => (
             <View key={n.id} style={styles.newsRow}>
               <Text style={styles.newsHeadline} numberOfLines={2}>{n.headline}</Text>
-              <Text style={styles.newsMeta}>{n.source} &middot; {timeAgo(n.publishedAt)}</Text>
+              <Text style={styles.newsMeta}>{n.source} · {timeAgo(n.publishedAt)}</Text>
             </View>
           ))}
         </View>
@@ -115,11 +86,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
-  card: { backgroundColor: '#fff', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginTop: 16 },
-  bigValue: { fontSize: 28, fontWeight: '700', marginTop: 4 },
-  changeText: { fontSize: 13, fontWeight: '500', marginTop: 4 },
+  container: { flex: 1, padding: 16, paddingTop: 48, backgroundColor: '#f9fafb' },
   section: { marginTop: 20 },
   sectionLabel: { fontSize: 12, fontWeight: '500', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },

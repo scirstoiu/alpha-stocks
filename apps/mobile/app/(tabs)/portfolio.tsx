@@ -109,7 +109,7 @@ export default function PortfolioScreen() {
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Holdings</Text>
           <Text style={styles.totalValue}>{formatCurrency(totals.value)}</Text>
-          <Text style={[styles.totalChange, { color: totals.dayChange >= 0 ? '#16a34a' : '#dc2626' }]}>
+          <Text style={[styles.totalChange, { color: totals.dayChange >= 0 ? '#4ade80' : '#f87171' }]}>
             {totals.dayChange >= 0 ? '+' : ''}{formatCurrency(totals.dayChange)} ({formatPercent(totals.pct)}) today
           </Text>
         </View>
@@ -156,11 +156,11 @@ export default function PortfolioScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
-  totalCard: { backgroundColor: '#1e3a5f', padding: 20, borderRadius: 12, marginBottom: 16 },
-  totalLabel: { fontSize: 12, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  container: { flex: 1, padding: 16, paddingTop: 48, backgroundColor: '#f9fafb' },
+  totalCard: { backgroundColor: '#111827', padding: 20, borderRadius: 12, marginBottom: 16 },
+  totalLabel: { fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   totalValue: { fontSize: 28, fontWeight: '800', color: '#fff' },
-  totalChange: { fontSize: 13, fontWeight: '500', marginTop: 4 },
+  totalChange: { fontSize: 13, fontWeight: '600', marginTop: 4 },
   createBtn: { backgroundColor: '#2563eb', padding: 12, borderRadius: 8, marginBottom: 12, alignItems: 'center' },
   createBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   createForm: { flexDirection: 'row', gap: 8, marginBottom: 12 },
@@ -168,8 +168,8 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: '#2563eb', paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center' },
   submitBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
-  card: { backgroundColor: '#eef4ff', padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#dbeafe' },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 6 },
+  card: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#2563eb', borderWidth: 1, borderColor: '#e5e7eb' },
+  cardTitle: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
   cardValue: { fontSize: 22, fontWeight: '800', color: '#111827' },
   cardChange: { fontSize: 12, fontWeight: '500', marginTop: 3 },
   cardHint: { fontSize: 12, color: '#9ca3af', marginTop: 6 },

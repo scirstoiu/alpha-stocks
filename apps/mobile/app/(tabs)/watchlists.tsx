@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useWatchlists, useCreateWatchlist, useDeleteWatchlist } from '@alpha-stocks/core';
@@ -10,6 +10,17 @@ export default function WatchlistsScreen() {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+
+  // Auto-navigate to the single watchlist
+  useEffect(() => {
+    if (watchlists && watchlists.length === 1) {
+      router.replace(`/watchlists/${watchlists[0].id}` as never);
+    }
+  }, [watchlists, router]);
+
+  if (isLoading || (watchlists && watchlists.length === 1)) {
+    return <View style={styles.container}><Text style={styles.hint}>Loading...</Text></View>;
+  }
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -46,9 +57,7 @@ export default function WatchlistsScreen() {
         </View>
       )}
 
-      {isLoading && <Text style={styles.hint}>Loading...</Text>}
-
-      {watchlists && watchlists.length === 0 && !isLoading && (
+      {watchlists && watchlists.length === 0 && (
         <Text style={styles.hint}>No watchlists yet. Create one to start tracking stocks.</Text>
       )}
 
@@ -73,7 +82,7 @@ export default function WatchlistsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
+  container: { flex: 1, padding: 16, paddingTop: 48, backgroundColor: '#f9fafb' },
   createBtn: { backgroundColor: '#2563eb', padding: 12, borderRadius: 8, marginBottom: 12, alignItems: 'center' },
   createBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   createForm: { flexDirection: 'row', gap: 8, marginBottom: 12 },

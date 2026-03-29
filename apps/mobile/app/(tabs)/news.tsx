@@ -42,7 +42,7 @@ export default function NewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
+  container: { flex: 1, padding: 16, paddingTop: 48, backgroundColor: '#f9fafb' },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
   card: { backgroundColor: '#fff', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 8 },
   headline: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
