@@ -112,7 +112,7 @@ export default function PortfoliosPage() {
       {summaries.size > 0 && (
         <div className="mb-6 bg-gradient-to-r from-gray-50 to-white rounded-xl px-6 py-4 border border-gray-100 flex items-baseline gap-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Holdings</span>
-          <span className="text-3xl font-bold">{formatCurrency(totalValue.total)}</span>
+          <span className="text-2xl font-bold">{formatCurrency(totalValue.total)}</span>
           <span className={`text-sm font-medium ${totalValue.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
             {totalValue.dayChange >= 0 ? '+' : ''}{formatCurrency(totalValue.dayChange)} ({formatPercent(totalValue.dayChangePercent)}) today
           </span>
@@ -237,7 +237,7 @@ function SortablePortfolioCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card
-        className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing bg-blue-50/60 border-blue-100"
+        className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing bg-indigo-50/50 border-indigo-100/60"
         onClick={handleClick}
       >
         <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
