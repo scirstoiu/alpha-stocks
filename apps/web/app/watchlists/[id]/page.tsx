@@ -86,13 +86,11 @@ function SortableRow({
       <td className="px-3 py-2">
         <Link
           href={`/stocks/${item.symbol}`}
-          className="inline-flex items-center gap-2 hover:underline"
+          className="inline-flex items-center gap-3 group"
         >
-          <StockLogo symbol={item.symbol} size={28} />
-          <div>
-            <span className="font-semibold text-xs bg-gray-100 px-1.5 py-0.5 rounded">{item.symbol}</span>
-            <span className="text-xs text-gray-500 ml-2">{quote?.name || ''}</span>
-          </div>
+          <StockLogo symbol={item.symbol} size={32} />
+          <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded transition-colors tracking-wide">{item.symbol}</span>
+          <span className="text-sm text-gray-600">{quote?.name || ''}</span>
         </Link>
       </td>
       <td className="px-3 py-2 text-right text-sm">

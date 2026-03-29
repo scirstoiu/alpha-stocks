@@ -84,6 +84,18 @@ export function useDeleteTransaction() {
   });
 }
 
+export function useReorderPortfolios() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      queries.reorderPortfolios(supabase, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+    },
+  });
+}
+
 export function useBulkAddTransactions() {
   const supabase = useSupabase();
   const queryClient = useQueryClient();

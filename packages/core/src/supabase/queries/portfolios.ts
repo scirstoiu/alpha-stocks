@@ -5,7 +5,7 @@ export async function getPortfolios(supabase: SupabaseClient): Promise<Portfolio
   const { data, error } = await supabase
     .from('portfolios')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('sort_order', { ascending: true });
 
   if (error) throw error;
   return data || [];
@@ -30,9 +30,19 @@ export async function createPortfolio(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Get max sort_order
+  const { data: existing } = await supabase
+    .from('portfolios')
+    .select('sort_order')
+    .eq('user_id', user.id)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  const nextOrder = existing && existing.length > 0 ? existing[0].sort_order + 1 : 0;
+
   const { data, error } = await supabase
     .from('portfolios')
-    .insert({ name, description, user_id: user.id })
+    .insert({ name, description, user_id: user.id, sort_order: nextOrder })
     .select()
     .single();
 
@@ -92,6 +102,18 @@ export async function deleteTransaction(
 ): Promise<void> {
   const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function reorderPortfolios(
+  supabase: SupabaseClient,
+  items: { id: string; sort_order: number }[],
+): Promise<void> {
+  const updates = items.map((item) =>
+    supabase.from('portfolios').update({ sort_order: item.sort_order }).eq('id', item.id),
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }
 
 export async function bulkAddTransactions(

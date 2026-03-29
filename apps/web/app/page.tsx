@@ -8,16 +8,12 @@ import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 import {
   useWatchlists,
-  usePortfolios,
-  useTransactions,
   useStockQuotes,
   useEarningsCalendar,
   useNews,
-  computePortfolioSummary,
   formatCurrency,
   formatPercent,
   formatDate,
-  type NewsItem,
 } from '@alpha-stocks/core';
 
 function timeAgo(ts: number): string {
@@ -28,55 +24,6 @@ function timeAgo(ts: number): string {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
-}
-
-function PortfolioSnapshot() {
-  const { data: portfolios, isLoading } = usePortfolios();
-  const firstPortfolioId = portfolios?.[0]?.id || '';
-  const { data: transactions } = useTransactions(firstPortfolioId);
-
-  const symbols = useMemo(() => {
-    if (!transactions) return [];
-    return [...new Set(transactions.map((t) => t.symbol))];
-  }, [transactions]);
-
-  const { data: quotes } = useStockQuotes(symbols);
-
-  const summary = useMemo(() => {
-    if (!transactions || !quotes) return null;
-    const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
-    return computePortfolioSummary(transactions, quoteMap);
-  }, [transactions, quotes]);
-
-  if (isLoading) return <Skeleton className="h-32 w-full" />;
-
-  if (!portfolios?.length) {
-    return (
-      <Card>
-        <p className="text-gray-500 text-sm">
-          No portfolios yet. <Link href="/portfolio" className="text-primary hover:underline">Create one</Link>
-        </p>
-      </Card>
-    );
-  }
-
-  return (
-    <Link href={`/portfolio/${firstPortfolioId}`} className="block">
-      <Card className="hover:shadow-md transition-shadow">
-        <h3 className="text-sm font-medium text-gray-500 mb-2">{portfolios[0].name}</h3>
-        {summary ? (
-          <div className="flex items-baseline gap-4">
-            <span className="text-2xl font-bold">{formatCurrency(summary.totalValue)}</span>
-            <span className={`text-sm font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-              {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
-            </span>
-          </div>
-        ) : (
-          <p className="text-gray-500 text-sm">Add transactions to see portfolio value</p>
-        )}
-      </Card>
-    </Link>
-  );
 }
 
 function WatchlistHighlights() {
@@ -215,11 +162,6 @@ export default function Dashboard() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
         <StockSearch />
-      </div>
-
-      <div className="mb-6">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Portfolio</h2>
-        <PortfolioSnapshot />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 mb-6">

@@ -1,12 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStockLogo } from '@alpha-stocks/core';
 
 const COLORS = [
   'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500',
   'bg-pink-500', 'bg-teal-500', 'bg-indigo-500', 'bg-red-500',
 ];
+
+const CACHE_KEY = 'stock-logos';
+
+function getLogoCache(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function setLogoCache(symbol: string, url: string) {
+  try {
+    const cache = getLogoCache();
+    cache[symbol] = url;
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
 
 function getColor(symbol: string): string {
   let hash = 0;
@@ -23,13 +43,34 @@ export default function StockLogo({
   symbol: string;
   size?: number;
 }) {
-  const { data: logoUrl } = useStockLogo(symbol);
+  const [cachedUrl, setCachedUrl] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
 
-  if (logoUrl && !imgError) {
+  // Check localStorage cache synchronously on mount
+  useEffect(() => {
+    const cache = getLogoCache();
+    if (cache[symbol]) {
+      setCachedUrl(cache[symbol]);
+    }
+  }, [symbol]);
+
+  // Fetch from API (will be a no-op if React Query cache already has it)
+  const { data: logoUrl } = useStockLogo(symbol);
+
+  // Persist new logos to localStorage
+  useEffect(() => {
+    if (logoUrl && logoUrl !== cachedUrl) {
+      setCachedUrl(logoUrl);
+      setLogoCache(symbol, logoUrl);
+    }
+  }, [logoUrl, symbol, cachedUrl]);
+
+  const url = cachedUrl || logoUrl;
+
+  if (url && !imgError) {
     return (
       <img
-        src={logoUrl}
+        src={url}
         alt={symbol}
         width={size}
         height={size}

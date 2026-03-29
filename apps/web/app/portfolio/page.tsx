@@ -1,26 +1,91 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   usePortfolios,
   useCreatePortfolio,
+  useReorderPortfolios,
   useTransactions,
   useStockQuotes,
   computePortfolioSummary,
   formatCurrency,
   formatPercent,
   type Portfolio,
+  type PortfolioSummary,
 } from '@alpha-stocks/core';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 
 export default function PortfoliosPage() {
   const { data: portfolios, isLoading } = usePortfolios();
   const createPortfolio = useCreatePortfolio();
+  const reorderPortfolios = useReorderPortfolios();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+
+  const [ordered, setOrdered] = useState<Portfolio[]>([]);
+  useEffect(() => {
+    if (portfolios) setOrdered(portfolios);
+  }, [portfolios]);
+
+  // Collect summaries from child cards for total
+  const [summaries, setSummaries] = useState<Map<string, PortfolioSummary>>(new Map());
+  const reportSummary = useCallback((id: string, summary: PortfolioSummary) => {
+    setSummaries((prev) => {
+      const next = new Map(prev);
+      next.set(id, summary);
+      return next;
+    });
+  }, []);
+
+  const totalValue = useMemo(() => {
+    let total = 0;
+    let dayChange = 0;
+    for (const s of summaries.values()) {
+      total += s.totalValue;
+      dayChange += s.dayChange;
+    }
+    return { total, dayChange, dayChangePercent: total > 0 ? (dayChange / (total - dayChange)) * 100 : 0 };
+  }, [summaries]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = ordered.findIndex((p) => p.id === active.id);
+      const newIndex = ordered.findIndex((p) => p.id === over.id);
+      const newOrder = arrayMove(ordered, oldIndex, newIndex);
+      setOrdered(newOrder);
+
+      const updates = newOrder.map((p, i) => ({ id: p.id, sort_order: i }));
+      reorderPortfolios.mutate(updates);
+    },
+    [ordered, reorderPortfolios],
+  );
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +108,17 @@ export default function PortfoliosPage() {
         </button>
       </div>
 
+      {/* Total holdings */}
+      {summaries.size > 0 && (
+        <div className="mb-6 flex items-baseline gap-4">
+          <span className="text-sm text-gray-500">Total Holdings</span>
+          <span className="text-2xl font-bold">{formatCurrency(totalValue.total)}</span>
+          <span className={`text-sm font-medium ${totalValue.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+            {totalValue.dayChange >= 0 ? '+' : ''}{formatCurrency(totalValue.dayChange)} ({formatPercent(totalValue.dayChangePercent)}) today
+          </span>
+        </div>
+      )}
+
       {isLoading && <p className="text-gray-500">Loading...</p>}
 
       {portfolios && portfolios.length === 0 && (
@@ -53,11 +129,15 @@ export default function PortfoliosPage() {
         </Card>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {portfolios?.map((p) => (
-          <PortfolioCard key={p.id} portfolio={p} />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={ordered.map((p) => p.id)} strategy={rectSortingStrategy}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ordered.map((p) => (
+              <SortablePortfolioCard key={p.id} portfolio={p} onSummary={reportSummary} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Portfolio">
         <form onSubmit={handleCreate}>
@@ -98,7 +178,28 @@ export default function PortfoliosPage() {
   );
 }
 
-function PortfolioCard({ portfolio }: { portfolio: Portfolio }) {
+function SortablePortfolioCard({
+  portfolio,
+  onSummary,
+}: {
+  portfolio: Portfolio;
+  onSummary: (id: string, summary: PortfolioSummary) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: portfolio.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const { data: transactions } = useTransactions(portfolio.id);
 
   const symbols = useMemo(() => {
@@ -114,24 +215,31 @@ function PortfolioCard({ portfolio }: { portfolio: Portfolio }) {
     return computePortfolioSummary(transactions, quoteMap);
   }, [transactions, quotes]);
 
+  // Report summary to parent for total calculation
+  useEffect(() => {
+    if (summary) onSummary(portfolio.id, summary);
+  }, [summary, portfolio.id, onSummary]);
+
   return (
-    <Link href={`/portfolio/${portfolio.id}`} className="block">
-      <Card className="hover:shadow-md transition-shadow p-4">
-        <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
-        {portfolio.description && (
-          <p className="text-xs text-gray-400 mb-1">{portfolio.description}</p>
-        )}
-        {summary ? (
-          <>
-            <p className="text-lg font-bold">{formatCurrency(summary.totalValue)}</p>
-            <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-              {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
-            </p>
-          </>
-        ) : transactions && transactions.length === 0 ? (
-          <p className="text-xs text-gray-400 mt-1">No transactions yet</p>
-        ) : null}
-      </Card>
-    </Link>
+    <div ref={setNodeRef} style={style}>
+      <Link href={`/portfolio/${portfolio.id}`} className="block">
+        <Card className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+          <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
+          {portfolio.description && (
+            <p className="text-xs text-gray-400 mb-1">{portfolio.description}</p>
+          )}
+          {summary ? (
+            <>
+              <p className="text-lg font-bold">{formatCurrency(summary.totalValue)}</p>
+              <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+              </p>
+            </>
+          ) : transactions && transactions.length === 0 ? (
+            <p className="text-xs text-gray-400 mt-1">No transactions yet</p>
+          ) : null}
+        </Card>
+      </Link>
+    </div>
   );
 }
