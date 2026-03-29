@@ -104,15 +104,15 @@ export default function PortfoliosPage() {
           onClick={() => setShowCreate(true)}
           className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark"
         >
-          New Portfolio
+          + New Portfolio
         </button>
       </div>
 
       {/* Total holdings */}
       {summaries.size > 0 && (
-        <div className="mb-6 flex items-baseline gap-4">
-          <span className="text-sm text-gray-500">Total Holdings</span>
-          <span className="text-2xl font-bold">{formatCurrency(totalValue.total)}</span>
+        <div className="mb-6 bg-gradient-to-r from-gray-50 to-white rounded-xl px-6 py-4 border border-gray-100 flex items-baseline gap-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Holdings</span>
+          <span className="text-3xl font-bold">{formatCurrency(totalValue.total)}</span>
           <span className={`text-sm font-medium ${totalValue.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
             {totalValue.dayChange >= 0 ? '+' : ''}{formatCurrency(totalValue.dayChange)} ({formatPercent(totalValue.dayChangePercent)}) today
           </span>
