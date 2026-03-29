@@ -31,11 +31,12 @@ steps:
     entrypoint: gcloud
 
 substitutions:
-  _NEXT_PUBLIC_SUPABASE_URL: 'https://wrduytomojpmymcjmvwh.supabase.co'
-  _NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_Qviz7W3gktEZNRhWpSBmCQ_LzOaP0OM'
   _AR_HOSTNAME: europe-west1-docker.pkg.dev
   _SERVICE_NAME: alpha-stocks
   _DEPLOY_REGION: europe-west1
+  # These must be set in the Cloud Build trigger settings:
+  # _NEXT_PUBLIC_SUPABASE_URL
+  # _NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 options:
   logging: CLOUD_LOGGING_ONLY
