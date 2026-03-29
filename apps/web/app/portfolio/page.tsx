@@ -237,7 +237,7 @@ function SortablePortfolioCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card
-        className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing"
+        className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing bg-gray-50"
         onClick={handleClick}
       >
         <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
