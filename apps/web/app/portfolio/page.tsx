@@ -1,8 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { usePortfolios, useCreatePortfolio, useDeletePortfolio } from '@alpha-stocks/core';
+import {
+  usePortfolios,
+  useCreatePortfolio,
+  useDeletePortfolio,
+  useTransactions,
+  useStockQuotes,
+  computePortfolioSummary,
+  formatCurrency,
+  formatPercent,
+  type Portfolio,
+} from '@alpha-stocks/core';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 
@@ -47,24 +57,11 @@ export default function PortfoliosPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {portfolios?.map((p) => (
-          <Card key={p.id} className="hover:shadow-md transition-shadow">
-            <Link href={`/portfolio/${p.id}`} className="block">
-              <h3 className="font-semibold text-lg mb-1">{p.name}</h3>
-              {p.description && (
-                <p className="text-sm text-gray-500">{p.description}</p>
-              )}
-            </Link>
-            <button
-              onClick={() => {
-                if (confirm(`Delete "${p.name}"?`)) {
-                  deletePortfolio.mutate(p.id);
-                }
-              }}
-              className="text-xs text-red-500 hover:text-red-700 mt-2"
-            >
-              Delete
-            </button>
-          </Card>
+          <PortfolioCard key={p.id} portfolio={p} onDelete={() => {
+            if (confirm(`Delete "${p.name}"?`)) {
+              deletePortfolio.mutate(p.id);
+            }
+          }} />
         ))}
       </div>
 
@@ -104,5 +101,46 @@ export default function PortfoliosPage() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+function PortfolioCard({ portfolio, onDelete }: { portfolio: Portfolio; onDelete: () => void }) {
+  const { data: transactions } = useTransactions(portfolio.id);
+
+  const symbols = useMemo(() => {
+    if (!transactions) return [];
+    return [...new Set(transactions.map((t) => t.symbol))];
+  }, [transactions]);
+
+  const { data: quotes } = useStockQuotes(symbols);
+
+  const summary = useMemo(() => {
+    if (!transactions || !quotes) return null;
+    const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+    return computePortfolioSummary(transactions, quoteMap);
+  }, [transactions, quotes]);
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <Link href={`/portfolio/${portfolio.id}`} className="block">
+        <h3 className="font-semibold text-lg mb-1">{portfolio.name}</h3>
+        {portfolio.description && (
+          <p className="text-sm text-gray-500 mb-2">{portfolio.description}</p>
+        )}
+        {summary ? (
+          <div>
+            <p className="text-xl font-bold">{formatCurrency(summary.totalValue)}</p>
+            <p className={`text-sm font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+              {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+            </p>
+          </div>
+        ) : transactions && transactions.length === 0 ? (
+          <p className="text-sm text-gray-400">No transactions yet</p>
+        ) : null}
+      </Link>
+      <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-700 mt-2">
+        Delete
+      </button>
+    </Card>
   );
 }

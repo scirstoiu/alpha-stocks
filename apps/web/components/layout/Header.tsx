@@ -8,7 +8,7 @@ import { useAuth } from '@alpha-stocks/core';
 const navItems = [
   { href: '/', label: 'Dashboard' },
   { href: '/watchlists', label: 'Watchlists' },
-  { href: '/portfolio', label: 'Portfolio' },
+  { href: '/portfolio', label: 'Portfolios' },
   { href: '/earnings', label: 'Earnings' },
   { href: '/news', label: 'News' },
 ];

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import StockSearch from '@/components/stocks/StockSearch';
+import StockLogo from '@/components/stocks/StockLogo';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 import {
@@ -110,9 +111,10 @@ function WatchlistHighlights() {
       <div className="divide-y divide-gray-100">
         {topMovers.map((q) => (
           <Link key={q.symbol} href={`/stocks/${q.symbol}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
-            <div>
+            <div className="flex items-center gap-2">
+              <StockLogo symbol={q.symbol} size={24} />
               <span className="font-medium text-sm">{q.symbol}</span>
-              <span className="text-xs text-gray-500 ml-2">{q.name}</span>
+              <span className="text-xs text-gray-500">{q.name}</span>
             </div>
             <div className="text-right">
               <span className="text-sm font-medium">{formatCurrency(q.price)}</span>
