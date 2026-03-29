@@ -11,6 +11,11 @@
     "typecheck": "turbo typecheck",
     "format": "prettier --write ."
   },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.0"
+    }
+  },
   "devDependencies": {
     "turbo": "^2.4.0",
     "prettier": "^3.0.0"

@@ -6,16 +6,21 @@
     "orientation": "portrait",
     "scheme": "alpha-stocks",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "android": {
       "package": "com.alphastocks.app",
       "adaptiveIcon": {
         "backgroundColor": "#2563eb"
       }
     },
-    "plugins": ["expo-router"],
-    "experiments": {
-      "typedRoutes": true
+    "plugins": [
+      "expo-router",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fe0883ab-224f-4537-b9ac-a6715399f9dd"
+      }
     }
   }
 }

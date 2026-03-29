@@ -7,7 +7,7 @@ import AuthProvider from '../components/AuthProvider';
 import AuthGate from '../components/AuthGate';
 
 const API_BASE_URL =
-  (Constants.expoConfig?.extra?.apiUrl as string) || 'http://10.0.2.2:3000';
+  (Constants.expoConfig?.extra?.apiUrl as string) || 'https://alpha-stocks-742708333282.europe-west1.run.app';
 
 export default function RootLayout() {
   const [queryClient] = useState(
