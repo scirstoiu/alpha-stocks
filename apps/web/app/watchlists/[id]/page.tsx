@@ -2,11 +2,13 @@
 
 import { use, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   useWatchlist,
   useAddWatchlistItem,
   useRemoveWatchlistItem,
   useReorderWatchlistItems,
+  useCreateWatchlist,
   useStockQuotes,
   useStockSearch,
   useEarningsCalendar,
@@ -200,6 +202,8 @@ export default function WatchlistDetailPage({
   const addItem = useAddWatchlistItem();
   const removeItem = useRemoveWatchlistItem();
   const reorderItems = useReorderWatchlistItems();
+  const createWatchlist = useCreateWatchlist();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const [orderedItems, setOrderedItems] = useState<WatchlistItem[]>([]);
@@ -273,8 +277,20 @@ export default function WatchlistDetailPage({
     <div>
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
-        <Link href="/watchlists" className="text-gray-400 hover:text-gray-600">&larr;</Link>
+        <Link href="/" className="text-gray-400 hover:text-gray-600">&larr;</Link>
         <h1 className="text-2xl font-bold">{watchlist.name}</h1>
+        <button
+          onClick={async () => {
+            const name = prompt('New watchlist name:');
+            if (name?.trim()) {
+              const wl = await createWatchlist.mutateAsync(name.trim());
+              router.push(`/watchlists/${wl.id}`);
+            }
+          }}
+          className="ml-auto text-sm text-gray-500 hover:text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg"
+        >
+          + New Watchlist
+        </button>
       </div>
 
       {/* Search */}

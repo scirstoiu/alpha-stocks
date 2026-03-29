@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="108" fill="#2563eb"/>
   <!-- Upward trending chart line -->
-  <polyline points="96,368 176,296 248,336 336,216 408,128"
-    fill="none" stroke="white" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="80,380 155,310 225,345 310,240 390,155"
+    fill="none" stroke="white" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
   <!-- Arrow head -->
-  <path d="M378,168 L408,128 L416,180" fill="none" stroke="white" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Alpha symbol -->
-  <text x="256" y="448" text-anchor="middle" font-family="Georgia,Times,serif" font-size="72" font-weight="bold" fill="white" opacity="0.45">&#945;</text>
+  <path d="M360,190 L390,155 L398,200" fill="none" stroke="white" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+  <!-- Large alpha overlapping chart -->
+  <text x="270" y="360" text-anchor="middle" font-family="Georgia,Times,serif" font-size="280" font-weight="bold" fill="white" opacity="0.35">&#945;</text>
 </svg>
