@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   usePortfolios,
   useCreatePortfolio,
-  useDeletePortfolio,
   useTransactions,
   useStockQuotes,
   computePortfolioSummary,
@@ -19,7 +18,6 @@ import Modal from '@/components/ui/Modal';
 export default function PortfoliosPage() {
   const { data: portfolios, isLoading } = usePortfolios();
   const createPortfolio = useCreatePortfolio();
-  const deletePortfolio = useDeletePortfolio();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -55,13 +53,9 @@ export default function PortfoliosPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {portfolios?.map((p) => (
-          <PortfolioCard key={p.id} portfolio={p} onDelete={() => {
-            if (confirm(`Delete "${p.name}"?`)) {
-              deletePortfolio.mutate(p.id);
-            }
-          }} />
+          <PortfolioCard key={p.id} portfolio={p} />
         ))}
       </div>
 
@@ -104,7 +98,7 @@ export default function PortfoliosPage() {
   );
 }
 
-function PortfolioCard({ portfolio, onDelete }: { portfolio: Portfolio; onDelete: () => void }) {
+function PortfolioCard({ portfolio }: { portfolio: Portfolio }) {
   const { data: transactions } = useTransactions(portfolio.id);
 
   const symbols = useMemo(() => {
@@ -121,26 +115,23 @@ function PortfolioCard({ portfolio, onDelete }: { portfolio: Portfolio; onDelete
   }, [transactions, quotes]);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <Link href={`/portfolio/${portfolio.id}`} className="block">
-        <h3 className="font-semibold text-lg mb-1">{portfolio.name}</h3>
+    <Link href={`/portfolio/${portfolio.id}`} className="block">
+      <Card className="hover:shadow-md transition-shadow p-4">
+        <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
         {portfolio.description && (
-          <p className="text-sm text-gray-500 mb-2">{portfolio.description}</p>
+          <p className="text-xs text-gray-400 mb-1">{portfolio.description}</p>
         )}
         {summary ? (
-          <div>
-            <p className="text-xl font-bold">{formatCurrency(summary.totalValue)}</p>
-            <p className={`text-sm font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+          <>
+            <p className="text-lg font-bold">{formatCurrency(summary.totalValue)}</p>
+            <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
               {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
             </p>
-          </div>
+          </>
         ) : transactions && transactions.length === 0 ? (
-          <p className="text-sm text-gray-400">No transactions yet</p>
+          <p className="text-xs text-gray-400 mt-1">No transactions yet</p>
         ) : null}
-      </Link>
-      <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-700 mt-2">
-        Delete
-      </button>
-    </Card>
+      </Card>
+    </Link>
   );
 }

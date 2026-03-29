@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useRef, useEffect, useCallback } from 'react';
+import { use, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   useWatchlist,
@@ -9,8 +9,12 @@ import {
   useReorderWatchlistItems,
   useStockQuotes,
   useStockSearch,
+  useEarningsCalendar,
+  useNews,
   formatCurrency,
   formatPercent,
+  formatCompactNumber,
+  formatDate,
   type WatchlistItem,
 } from '@alpha-stocks/core';
 import {
@@ -33,13 +37,15 @@ import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 import StockLogo from '@/components/stocks/StockLogo';
 
+type Tab = 'overview' | 'earnings' | 'news';
+
 function SortableRow({
   item,
   quote,
   onRemove,
 }: {
   item: WatchlistItem;
-  quote?: { name: string; price: number; change: number; changePercent: number };
+  quote?: { name: string; price: number; change: number; changePercent: number; volume: number };
   onRemove: () => void;
 }) {
   const {
@@ -60,14 +66,14 @@ function SortableRow({
   const isPositive = (quote?.change ?? 0) >= 0;
 
   return (
-    <tr ref={setNodeRef} style={style} className="border-b border-gray-100 hover:bg-gray-50">
-      <td className="px-2 py-3 w-8">
+    <tr ref={setNodeRef} style={style} className="border-b border-gray-100 hover:bg-gray-50/50">
+      <td className="pl-2 pr-0 py-2 w-6">
         <button
-          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none"
+          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 touch-none"
           {...attributes}
           {...listeners}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
             <circle cx="5" cy="3" r="1.5" />
             <circle cx="11" cy="3" r="1.5" />
             <circle cx="5" cy="8" r="1.5" />
@@ -77,31 +83,112 @@ function SortableRow({
           </svg>
         </button>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-3 py-2">
         <Link
           href={`/stocks/${item.symbol}`}
-          className="font-medium text-primary hover:underline inline-flex items-center gap-2"
+          className="inline-flex items-center gap-2 hover:underline"
         >
-          <StockLogo symbol={item.symbol} size={24} />
-          {item.symbol}
+          <StockLogo symbol={item.symbol} size={28} />
+          <div>
+            <span className="font-semibold text-xs bg-gray-100 px-1.5 py-0.5 rounded">{item.symbol}</span>
+            <span className="text-xs text-gray-500 ml-2">{quote?.name || ''}</span>
+          </div>
         </Link>
       </td>
-      <td className="px-4 py-3 text-gray-600">{quote?.name || '—'}</td>
-      <td className="px-4 py-3 text-right font-medium">
-        {quote ? formatCurrency(quote.price) : '—'}
+      <td className="px-3 py-2 text-right text-sm">
+        {quote ? (
+          <span>{quote.price.toFixed(2)} <span className="text-[10px] text-gray-400">USD</span></span>
+        ) : '—'}
       </td>
-      <td className={`px-4 py-3 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
-        {quote ? `${isPositive ? '+' : ''}${quote.change.toFixed(2)}` : '—'}
-      </td>
-      <td className={`px-4 py-3 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
+      <td className={`px-3 py-2 text-right text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
         {quote ? formatPercent(quote.changePercent) : '—'}
       </td>
-      <td className="px-4 py-3 text-right">
-        <button onClick={onRemove} className="text-red-400 hover:text-red-600 text-xs">
-          Remove
+      <td className={`px-3 py-2 text-right text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
+        {quote ? (
+          <span>{(isPositive ? '+' : '') + quote.change.toFixed(2)} <span className="text-[10px]">USD</span></span>
+        ) : '—'}
+      </td>
+      <td className="px-3 py-2 text-right text-sm text-gray-500">
+        {quote?.volume ? formatCompactNumber(quote.volume) : '—'}
+      </td>
+      <td className="px-3 py-2 text-right">
+        <button onClick={onRemove} className="text-gray-400 hover:text-red-500 text-xs">
+          &times;
         </button>
       </td>
     </tr>
+  );
+}
+
+function EarningsTab({ symbols }: { symbols: string[] }) {
+  const from = new Date().toISOString().split('T')[0];
+  const to = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+  const { data: earnings, isLoading } = useEarningsCalendar(from, to);
+
+  const symbolSet = useMemo(() => new Set(symbols), [symbols]);
+  const filtered = useMemo(
+    () => (earnings || []).filter((e) => symbolSet.has(e.symbol)),
+    [earnings, symbolSet],
+  );
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+
+  if (filtered.length === 0) {
+    return <p className="text-gray-400 text-sm py-8 text-center">No upcoming earnings for stocks in this watchlist.</p>;
+  }
+
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-gray-200">
+          <th className="text-left px-3 py-2 font-medium text-gray-400 text-xs">Symbol</th>
+          <th className="text-left px-3 py-2 font-medium text-gray-400 text-xs">Date</th>
+          <th className="text-left px-3 py-2 font-medium text-gray-400 text-xs">Time</th>
+          <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">EPS Est.</th>
+          <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Revenue Est.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filtered.map((e, i) => (
+          <tr key={`${e.symbol}-${i}`} className="border-b border-gray-100">
+            <td className="px-3 py-2 font-medium">
+              <Link href={`/stocks/${e.symbol}`} className="text-primary hover:underline inline-flex items-center gap-2">
+                <StockLogo symbol={e.symbol} size={20} />
+                {e.symbol}
+              </Link>
+            </td>
+            <td className="px-3 py-2">{formatDate(e.date)}</td>
+            <td className="px-3 py-2 text-gray-500">{e.hour === 'bmo' ? 'Before Open' : e.hour === 'amc' ? 'After Close' : '—'}</td>
+            <td className="px-3 py-2 text-right">{e.epsEstimate ? `$${e.epsEstimate.toFixed(2)}` : '—'}</td>
+            <td className="px-3 py-2 text-right">{e.revenueEstimate ? formatCurrency(e.revenueEstimate) : '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function NewsTab({ symbols }: { symbols: string[] }) {
+  // Fetch news for first few symbols
+  const { data: news, isLoading } = useNews(symbols[0]);
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+
+  const items = (news || []).slice(0, 15);
+
+  if (items.length === 0) {
+    return <p className="text-gray-400 text-sm py-8 text-center">No recent news for stocks in this watchlist.</p>;
+  }
+
+  return (
+    <div className="divide-y divide-gray-100">
+      {items.map((n) => (
+        <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="block px-3 py-2.5 hover:bg-gray-50">
+          <p className="text-sm font-medium line-clamp-1">{n.headline}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{n.source} &middot; {formatDate(new Date(n.publishedAt).toISOString())}</p>
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -115,8 +202,8 @@ export default function WatchlistDetailPage({
   const addItem = useAddWatchlistItem();
   const removeItem = useRemoveWatchlistItem();
   const reorderItems = useReorderWatchlistItems();
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
-  // Local ordering state for optimistic DnD updates
   const [orderedItems, setOrderedItems] = useState<WatchlistItem[]>([]);
   useEffect(() => {
     if (watchlist?.items) {
@@ -150,11 +237,8 @@ export default function WatchlistDetailPage({
       const oldIndex = orderedItems.findIndex((i) => i.id === active.id);
       const newIndex = orderedItems.findIndex((i) => i.id === over.id);
       const newItems = arrayMove(orderedItems, oldIndex, newIndex);
-
-      // Optimistic update
       setOrderedItems(newItems);
 
-      // Persist new sort_order values
       const updates = newItems.map((item, index) => ({ id: item.id, sort_order: index }));
       reorderItems.mutate({ watchlistId: id, items: updates });
     },
@@ -181,25 +265,28 @@ export default function WatchlistDetailPage({
   }
 
   const quoteMap = new Map(quotes?.map((q) => [q.symbol, q]));
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'earnings', label: 'Earnings' },
+    { key: 'news', label: 'News' },
+  ];
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-1">
         <Link href="/watchlists" className="text-gray-400 hover:text-gray-600">&larr;</Link>
         <h1 className="text-2xl font-bold">{watchlist.name}</h1>
-        <span className="text-sm text-gray-500">
-          {orderedItems.length} stock{orderedItems.length !== 1 ? 's' : ''}
-        </span>
       </div>
 
-      {/* Add stock search */}
-      <div className="relative mb-6 max-w-sm">
+      {/* Search */}
+      <div className="relative mb-4 max-w-sm">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Add a stock..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
         {debouncedQuery.length >= 2 && searchResults && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
@@ -213,50 +300,78 @@ export default function WatchlistDetailPage({
                 <span className="flex-1">
                   <strong>{r.symbol}</strong> {r.name}
                 </span>
-                <span className="text-gray-400">{r.type}</span>
+                <span className="text-gray-400 text-xs">{r.type}</span>
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Watchlist table */}
-      {orderedItems.length > 0 ? (
-        <Card className="overflow-hidden p-0">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="w-8 px-2 py-3"></th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Symbol</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Price</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Change</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Change %</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <SortableContext items={orderedItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-                <tbody>
-                  {orderedItems.map((item) => (
-                    <SortableRow
-                      key={item.id}
-                      item={item}
-                      quote={quoteMap.get(item.symbol)}
-                      onRemove={() => removeItem.mutate({ itemId: item.id, watchlistId: id })}
-                    />
-                  ))}
-                </tbody>
-              </SortableContext>
-            </table>
-          </DndContext>
-        </Card>
-      ) : (
-        <Card>
-          <p className="text-gray-500 text-center py-8">
-            This watchlist is empty. Use the search above to add stocks.
-          </p>
-        </Card>
+      {/* Tabs */}
+      <div className="flex gap-0 border-b border-gray-200 mb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === tab.key
+                ? 'border-gray-900 text-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'overview' && (
+        <>
+          {orderedItems.length > 0 ? (
+            <div className="text-xs text-gray-400 mb-1 px-1">
+              {orderedItems.length} symbol{orderedItems.length !== 1 ? 's' : ''}
+            </div>
+          ) : null}
+          {orderedItems.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="w-6 pl-2 py-2"></th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-400 text-xs">Ticker</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Last</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Chg%</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Chg</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Volume</th>
+                    <th className="w-8 px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <SortableContext items={orderedItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                  <tbody>
+                    {orderedItems.map((item) => (
+                      <SortableRow
+                        key={item.id}
+                        item={item}
+                        quote={quoteMap.get(item.symbol)}
+                        onRemove={() => removeItem.mutate({ itemId: item.id, watchlistId: id })}
+                      />
+                    ))}
+                  </tbody>
+                </SortableContext>
+              </table>
+            </DndContext>
+          ) : (
+            <p className="text-gray-400 text-sm py-8 text-center">
+              This watchlist is empty. Use the search above to add stocks.
+            </p>
+          )}
+        </>
+      )}
+
+      {activeTab === 'earnings' && <EarningsTab symbols={symbols} />}
+      {activeTab === 'news' && symbols.length > 0 && <NewsTab symbols={symbols} />}
+      {activeTab === 'news' && symbols.length === 0 && (
+        <p className="text-gray-400 text-sm py-8 text-center">Add stocks to see news.</p>
       )}
     </div>
   );
