@@ -1,8 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import {
   usePortfolio,
+  usePortfolios,
   useTransactions,
   useStockQuotes,
   computePortfolioSummary,
@@ -16,6 +18,37 @@ export default function PortfolioDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: portfolio } = usePortfolio(id || '');
+  const { data: portfolios } = usePortfolios();
+
+  // Swipe left/right to navigate between portfolios
+  const swipeHandled = useRef(false);
+  const flingLeft = Gesture.Fling()
+    .direction(1) // right = go to previous
+    .onEnd(() => {
+      if (swipeHandled.current || !portfolios || !id) return;
+      const idx = portfolios.findIndex((p) => p.id === id);
+      if (idx > 0) {
+        swipeHandled.current = true;
+        router.replace(`/portfolio/${portfolios[idx - 1].id}` as never);
+        setTimeout(() => { swipeHandled.current = false; }, 500);
+      }
+    })
+    .runOnJS(true);
+
+  const flingRight = Gesture.Fling()
+    .direction(2) // left = go to next
+    .onEnd(() => {
+      if (swipeHandled.current || !portfolios || !id) return;
+      const idx = portfolios.findIndex((p) => p.id === id);
+      if (idx < portfolios.length - 1) {
+        swipeHandled.current = true;
+        router.replace(`/portfolio/${portfolios[idx + 1].id}` as never);
+        setTimeout(() => { swipeHandled.current = false; }, 500);
+      }
+    })
+    .runOnJS(true);
+
+  const gesture = Gesture.Race(flingLeft, flingRight);
   const { data: transactions } = useTransactions(id || '');
 
   const symbols = useMemo(() => {
@@ -31,9 +64,17 @@ export default function PortfolioDetailScreen() {
     return computePortfolioSummary(transactions, quoteMap);
   }, [transactions, quotes]);
 
+  // Portfolio index indicator
+  const currentIdx = portfolios ? portfolios.findIndex((p) => p.id === id) : -1;
+  const totalCount = portfolios?.length || 0;
+
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{portfolio?.name}</Text>
+    <GestureDetector gesture={gesture}>
+      <ScrollView style={styles.container}>
+        {totalCount > 1 && (
+          <Text style={styles.pageIndicator}>{currentIdx + 1} / {totalCount}</Text>
+        )}
+        <Text style={styles.title}>{portfolio?.name}</Text>
 
       {summary && (
         <View style={styles.metricsGrid}>
@@ -124,11 +165,13 @@ export default function PortfolioDetailScreen() {
 
       <View style={{ height: 32 }} />
     </ScrollView>
+    </GestureDetector>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
+  pageIndicator: { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginBottom: 4 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   metricCard: { width: '48%', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' },

@@ -4,11 +4,22 @@ import { useStockQuote, useHistoricalPrices, formatCurrency, formatPercent, form
 import { useState } from 'react';
 import { TouchableOpacity } from 'react-native';
 import StockLogo from '../../components/stocks/StockLogo';
-import Svg, { Polyline } from 'react-native-svg';
+import Svg, { Polyline, Line, Text as SvgText } from 'react-native-svg';
 
 const RANGES: HistoricalRange[] = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y'];
-const CHART_WIDTH = Dimensions.get('window').width - 32;
+const SCREEN_WIDTH = Dimensions.get('window').width - 32;
+const Y_LABEL_WIDTH = 55;
+const CHART_WIDTH = SCREEN_WIDTH - Y_LABEL_WIDTH;
 const CHART_HEIGHT = 200;
+const PADDING_TOP = 10;
+const PADDING_BOTTOM = 10;
+const NUM_TICKS = 5;
+
+function formatYLabel(value: number): string {
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+  if (value >= 100) return `$${value.toFixed(0)}`;
+  return `$${value.toFixed(2)}`;
+}
 
 function MiniChart({ symbol, range }: { symbol: string; range: HistoricalRange }) {
   const { data: prices, isLoading } = useHistoricalPrices(symbol, range);
@@ -26,21 +37,39 @@ function MiniChart({ symbol, range }: { symbol: string; range: HistoricalRange }
 
   const min = Math.min(...closes);
   const max = Math.max(...closes);
-  const range2 = max - min || 1;
+  const dataRange = max - min || 1;
   const isPositive = closes[closes.length - 1] >= closes[0];
   const color = isPositive ? '#16a34a' : '#dc2626';
+  const chartInnerHeight = CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
 
   const points = closes
     .map((c, i) => {
-      const x = (i / (closes.length - 1)) * CHART_WIDTH;
-      const y = CHART_HEIGHT - ((c - min) / range2) * (CHART_HEIGHT - 20) - 10;
+      const x = Y_LABEL_WIDTH + (i / (closes.length - 1)) * CHART_WIDTH;
+      const y = PADDING_TOP + chartInnerHeight - ((c - min) / dataRange) * chartInnerHeight;
       return `${x},${y}`;
     })
     .join(' ');
 
+  // Y-axis tick values
+  const ticks = Array.from({ length: NUM_TICKS }, (_, i) => {
+    const value = min + (dataRange * i) / (NUM_TICKS - 1);
+    const y = PADDING_TOP + chartInnerHeight - ((value - min) / dataRange) * chartInnerHeight;
+    return { value, y };
+  });
+
   return (
     <View style={chartStyles.container}>
-      <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+      <Svg width={SCREEN_WIDTH} height={CHART_HEIGHT}>
+        {/* Grid lines and Y labels */}
+        {ticks.map((tick, i) => (
+          <Line key={i} x1={Y_LABEL_WIDTH} y1={tick.y} x2={SCREEN_WIDTH} y2={tick.y} stroke="#f3f4f6" strokeWidth={1} />
+        ))}
+        {ticks.map((tick, i) => (
+          <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={10} fill="#9ca3af" textAnchor="end">
+            {formatYLabel(tick.value)}
+          </SvgText>
+        ))}
+        {/* Price line */}
         <Polyline points={points} fill="none" stroke={color} strokeWidth={2} />
       </Svg>
     </View>
