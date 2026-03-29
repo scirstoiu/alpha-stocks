@@ -287,7 +287,7 @@ export default function WatchlistDetailPage({
               router.push(`/watchlists/${wl.id}`);
             }
           }}
-          className="ml-auto text-sm text-gray-500 hover:text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg"
+          className="ml-auto bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark"
         >
           + New Watchlist
         </button>
