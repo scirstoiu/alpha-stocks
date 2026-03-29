@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Alpha Stocks",
+    "slug": "alpha-stocks",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "alpha-stocks",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.alphastocks.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#2563eb"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

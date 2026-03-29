@@ -1,0 +1,40 @@
+'use client';
+
+import './globals.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiClientContext, createApiClient } from '@alpha-stocks/core';
+import { useState } from 'react';
+import Header from '@/components/layout/Header';
+import AuthProvider from '@/components/AuthProvider';
+
+const apiClient = createApiClient('');
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            gcTime: 3_600_000,
+            retry: 1,
+          },
+        },
+      }),
+  );
+
+  return (
+    <html lang="en">
+      <body className="bg-gray-50 text-gray-900 min-h-screen font-sans">
+        <QueryClientProvider client={queryClient}>
+          <ApiClientContext value={apiClient}>
+            <AuthProvider>
+              <Header />
+              <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
+            </AuthProvider>
+          </ApiClientContext>
+        </QueryClientProvider>
+      </body>
+    </html>
+  );
+}
