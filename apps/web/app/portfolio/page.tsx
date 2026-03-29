@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   usePortfolios,
   useCreatePortfolio,
@@ -185,6 +185,8 @@ function SortablePortfolioCard({
   portfolio: Portfolio;
   onSummary: (id: string, summary: PortfolioSummary) => void;
 }) {
+  const router = useRouter();
+  const didDrag = useRef(false);
   const {
     attributes,
     listeners,
@@ -199,6 +201,11 @@ function SortablePortfolioCard({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Track whether a drag happened so we don't navigate on drop
+  useEffect(() => {
+    if (isDragging) didDrag.current = true;
+  }, [isDragging]);
 
   const { data: transactions } = useTransactions(portfolio.id);
 
@@ -215,31 +222,39 @@ function SortablePortfolioCard({
     return computePortfolioSummary(transactions, quoteMap);
   }, [transactions, quotes]);
 
-  // Report summary to parent for total calculation
   useEffect(() => {
     if (summary) onSummary(portfolio.id, summary);
   }, [summary, portfolio.id, onSummary]);
 
+  function handleClick() {
+    if (didDrag.current) {
+      didDrag.current = false;
+      return;
+    }
+    router.push(`/portfolio/${portfolio.id}`);
+  }
+
   return (
-    <div ref={setNodeRef} style={style}>
-      <Link href={`/portfolio/${portfolio.id}`} className="block">
-        <Card className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-          <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
-          {portfolio.description && (
-            <p className="text-xs text-gray-400 mb-1">{portfolio.description}</p>
-          )}
-          {summary ? (
-            <>
-              <p className="text-lg font-bold">{formatCurrency(summary.totalValue)}</p>
-              <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-                {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
-              </p>
-            </>
-          ) : transactions && transactions.length === 0 ? (
-            <p className="text-xs text-gray-400 mt-1">No transactions yet</p>
-          ) : null}
-        </Card>
-      </Link>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <Card
+        className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing"
+        onClick={handleClick}
+      >
+        <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
+        {portfolio.description && (
+          <p className="text-xs text-gray-400 mb-1">{portfolio.description}</p>
+        )}
+        {summary ? (
+          <>
+            <p className="text-lg font-bold">{formatCurrency(summary.totalValue)}</p>
+            <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+              {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+            </p>
+          </>
+        ) : transactions && transactions.length === 0 ? (
+          <p className="text-xs text-gray-400 mt-1">No transactions yet</p>
+        ) : null}
+      </Card>
     </div>
   );
 }

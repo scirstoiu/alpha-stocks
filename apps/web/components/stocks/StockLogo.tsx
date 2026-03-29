@@ -9,19 +9,24 @@ const COLORS = [
 ];
 
 const CACHE_KEY = 'stock-logos';
+let memoryCache: Record<string, string> | null = null;
 
 function getLogoCache(): Record<string, string> {
+  if (memoryCache) return memoryCache;
   try {
-    return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    memoryCache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    return memoryCache!;
   } catch {
-    return {};
+    memoryCache = {};
+    return memoryCache;
   }
 }
 
 function setLogoCache(symbol: string, url: string) {
+  const cache = getLogoCache();
+  if (cache[symbol] === url) return;
+  cache[symbol] = url;
   try {
-    const cache = getLogoCache();
-    cache[symbol] = url;
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
   } catch {
     // localStorage full or unavailable
@@ -43,29 +48,27 @@ export default function StockLogo({
   symbol: string;
   size?: number;
 }) {
-  const [cachedUrl, setCachedUrl] = useState<string | null>(null);
+  // Initialize synchronously from in-memory cache (populated from localStorage on first access)
+  const [cachedUrl] = useState<string | null>(() => {
+    try {
+      return getLogoCache()[symbol] || null;
+    } catch {
+      return null;
+    }
+  });
   const [imgError, setImgError] = useState(false);
 
-  // Check localStorage cache synchronously on mount
-  useEffect(() => {
-    const cache = getLogoCache();
-    if (cache[symbol]) {
-      setCachedUrl(cache[symbol]);
-    }
-  }, [symbol]);
-
-  // Fetch from API (will be a no-op if React Query cache already has it)
+  // Fetch from API (React Query handles dedup + in-memory caching)
   const { data: logoUrl } = useStockLogo(symbol);
 
-  // Persist new logos to localStorage
+  // Persist new logos to localStorage + in-memory cache
   useEffect(() => {
-    if (logoUrl && logoUrl !== cachedUrl) {
-      setCachedUrl(logoUrl);
+    if (logoUrl) {
       setLogoCache(symbol, logoUrl);
     }
-  }, [logoUrl, symbol, cachedUrl]);
+  }, [logoUrl, symbol]);
 
-  const url = cachedUrl || logoUrl;
+  const url = logoUrl || cachedUrl;
 
   if (url && !imgError) {
     return (
