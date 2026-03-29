@@ -17,9 +17,11 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages/core/node_modules ./packages/core/node_modules
 COPY . .
 
-# Publishable keys — safe for client-side, required at build time by Next.js
-ENV NEXT_PUBLIC_SUPABASE_URL=https://wrduytomojpmymcjmvwh.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_Qviz7W3gktEZNRhWpSBmCQ_LzOaP0OM
+# Passed as --build-arg from Cloud Build trigger
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 RUN pnpm --filter @alpha-stocks/web build
 
