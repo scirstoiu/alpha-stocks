@@ -1,5 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import {
   usePortfolio,
@@ -10,9 +10,11 @@ import {
   formatPercent,
   formatDate,
 } from '@alpha-stocks/core';
+import StockLogo from '../../components/stocks/StockLogo';
 
 export default function PortfolioDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { data: portfolio } = usePortfolio(id || '');
   const { data: transactions } = useTransactions(id || '');
 
@@ -44,6 +46,9 @@ export default function PortfolioDetailScreen() {
             <Text style={[styles.metricValue, { color: summary.totalUnrealizedGain >= 0 ? '#16a34a' : '#dc2626' }]}>
               {formatCurrency(summary.totalUnrealizedGain)}
             </Text>
+            <Text style={[styles.metricSub, { color: summary.totalUnrealizedGain >= 0 ? '#16a34a' : '#dc2626' }]}>
+              {formatPercent(summary.totalUnrealizedGainPercent)}
+            </Text>
           </View>
           <View style={styles.metricCard}>
             <Text style={styles.metricLabel}>Realized P&L</Text>
@@ -56,6 +61,9 @@ export default function PortfolioDetailScreen() {
             <Text style={[styles.metricValue, { color: summary.dayChange >= 0 ? '#16a34a' : '#dc2626' }]}>
               {formatCurrency(summary.dayChange)}
             </Text>
+            <Text style={[styles.metricSub, { color: summary.dayChange >= 0 ? '#16a34a' : '#dc2626' }]}>
+              {formatPercent(summary.dayChangePercent)}
+            </Text>
           </View>
         </View>
       )}
@@ -64,10 +72,17 @@ export default function PortfolioDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Positions</Text>
           {summary.positions.map((pos) => (
-            <View key={pos.symbol} style={styles.posRow}>
-              <View>
-                <Text style={styles.posSymbol}>{pos.symbol}</Text>
-                <Text style={styles.posShares}>{pos.shares.toFixed(2)} shares @ {formatCurrency(pos.averageCost)}</Text>
+            <TouchableOpacity
+              key={pos.symbol}
+              style={styles.posRow}
+              onPress={() => router.push(`/stocks/${pos.symbol}`)}
+            >
+              <View style={styles.posLeft}>
+                <StockLogo symbol={pos.symbol} size={36} />
+                <View>
+                  <Text style={styles.posSymbol}>{pos.symbol}</Text>
+                  <Text style={styles.posShares}>{pos.shares.toFixed(2)} shares @ {formatCurrency(pos.averageCost)}</Text>
+                </View>
               </View>
               <View style={styles.posRight}>
                 <Text style={styles.posValue}>{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</Text>
@@ -77,7 +92,7 @@ export default function PortfolioDetailScreen() {
                   </Text>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -87,11 +102,15 @@ export default function PortfolioDetailScreen() {
         {transactions && transactions.length > 0 ? (
           [...transactions].reverse().map((tx) => (
             <View key={tx.id} style={styles.txRow}>
-              <View>
-                <Text style={styles.txType}>
-                  {tx.type.toUpperCase()} {tx.symbol}
-                </Text>
-                <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
+              <View style={styles.txLeft}>
+                <StockLogo symbol={tx.symbol} size={28} />
+                <View>
+                  <View style={styles.txHeader}>
+                    <Text style={styles.txType(tx.type)}>{tx.type.toUpperCase()}</Text>
+                    <Text style={styles.txSymbol}>{tx.symbol}</Text>
+                  </View>
+                  <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
+                </View>
               </View>
               <View style={styles.posRight}>
                 <Text style={styles.txAmount}>{tx.shares} @ {formatCurrency(tx.price_per_share)}</Text>
@@ -102,6 +121,8 @@ export default function PortfolioDetailScreen() {
           <Text style={styles.hint}>No transactions yet.</Text>
         )}
       </View>
+
+      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
@@ -111,19 +132,33 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   metricCard: { width: '48%', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' },
-  metricLabel: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
+  metricLabel: { fontSize: 11, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   metricValue: { fontSize: 18, fontWeight: '700' },
+  metricSub: { fontSize: 11, fontWeight: '500', marginTop: 2 },
   section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, color: '#6b7280' },
   posRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
+  posLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   posSymbol: { fontWeight: '600', fontSize: 15 },
-  posShares: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  posShares: { fontSize: 11, color: '#6b7280', marginTop: 2 },
   posRight: { alignItems: 'flex-end' },
   posValue: { fontWeight: '600', fontSize: 15 },
   posGain: { fontSize: 12, marginTop: 2 },
   txRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
-  txType: { fontWeight: '600', fontSize: 14 },
-  txDate: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  txHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  txType: ((type: string) => ({
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: type === 'buy' ? '#16a34a' : type === 'sell' ? '#dc2626' : '#2563eb',
+    backgroundColor: type === 'buy' ? '#f0fdf4' : type === 'sell' ? '#fef2f2' : '#eff6ff',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden' as const,
+  })) as unknown as any,
+  txSymbol: { fontWeight: '600', fontSize: 14 },
+  txDate: { fontSize: 11, color: '#6b7280', marginTop: 2 },
   txAmount: { fontSize: 13, color: '#374151' },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 16 },
 });

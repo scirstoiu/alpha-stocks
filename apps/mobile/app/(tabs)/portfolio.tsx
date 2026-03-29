@@ -1,13 +1,63 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { usePortfolios, useCreatePortfolio, useDeletePortfolio } from '@alpha-stocks/core';
+import {
+  usePortfolios,
+  useCreatePortfolio,
+  useDeletePortfolio,
+  useTransactions,
+  useStockQuotes,
+  computePortfolioSummary,
+  formatCurrency,
+  formatPercent,
+  type Portfolio,
+} from '@alpha-stocks/core';
+
+function PortfolioCard({ portfolio, onDelete }: { portfolio: Portfolio; onDelete: () => void }) {
+  const router = useRouter();
+  const { data: transactions } = useTransactions(portfolio.id);
+
+  const symbols = useMemo(() => {
+    if (!transactions) return [];
+    return [...new Set(transactions.map((t) => t.symbol))];
+  }, [transactions]);
+
+  const { data: quotes } = useStockQuotes(symbols);
+
+  const summary = useMemo(() => {
+    if (!transactions || !quotes) return null;
+    const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+    return computePortfolioSummary(transactions, quoteMap);
+  }, [transactions, quotes]);
+
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => router.push(`/portfolio/${portfolio.id}` as never)}
+      onLongPress={onDelete}
+    >
+      <Text style={styles.cardTitle}>{portfolio.name}</Text>
+      {portfolio.description ? (
+        <Text style={styles.cardDesc}>{portfolio.description}</Text>
+      ) : null}
+      {summary ? (
+        <View style={styles.cardMetrics}>
+          <Text style={styles.cardValue}>{formatCurrency(summary.totalValue)}</Text>
+          <Text style={[styles.cardChange, { color: summary.dayChange >= 0 ? '#16a34a' : '#dc2626' }]}>
+            {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+          </Text>
+        </View>
+      ) : transactions && transactions.length === 0 ? (
+        <Text style={styles.cardHint}>No transactions yet</Text>
+      ) : null}
+    </TouchableOpacity>
+  );
+}
 
 export default function PortfolioScreen() {
   const { data: portfolios, isLoading } = usePortfolios();
   const createPortfolio = useCreatePortfolio();
   const deletePortfolio = useDeletePortfolio();
-  const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -56,14 +106,10 @@ export default function PortfolioScreen() {
         data={portfolios}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push(`/portfolio/${item.id}` as never)}
-            onLongPress={() => handleDelete(item.id, item.name)}
-          >
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            {item.description && <Text style={styles.cardSub}>{item.description}</Text>}
-          </TouchableOpacity>
+          <PortfolioCard
+            portfolio={item}
+            onDelete={() => handleDelete(item.id, item.name)}
+          />
         )}
       />
     </View>
@@ -80,6 +126,10 @@ const styles = StyleSheet.create({
   submitBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
   card: { backgroundColor: '#fff', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 8 },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  cardSub: { fontSize: 13, color: '#6b7280' },
+  cardTitle: { fontSize: 16, fontWeight: '600' },
+  cardDesc: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  cardMetrics: { marginTop: 8 },
+  cardValue: { fontSize: 20, fontWeight: '700' },
+  cardChange: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  cardHint: { fontSize: 12, color: '#9ca3af', marginTop: 6 },
 });

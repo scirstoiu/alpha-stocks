@@ -1,11 +1,61 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useStockQuote, formatCurrency, formatPercent, formatCompactNumber } from '@alpha-stocks/core';
+import { useStockQuote, useHistoricalPrices, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange } from '@alpha-stocks/core';
+import { useState } from 'react';
+import { TouchableOpacity } from 'react-native';
+import StockLogo from '../../components/stocks/StockLogo';
+import Svg, { Polyline } from 'react-native-svg';
+
+const RANGES: HistoricalRange[] = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y'];
+const CHART_WIDTH = Dimensions.get('window').width - 32;
+const CHART_HEIGHT = 200;
+
+function MiniChart({ symbol, range }: { symbol: string; range: HistoricalRange }) {
+  const { data: prices, isLoading } = useHistoricalPrices(symbol, range);
+
+  if (isLoading || !prices || prices.length === 0) {
+    return (
+      <View style={[chartStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        {isLoading && <ActivityIndicator size="small" color="#2563eb" />}
+      </View>
+    );
+  }
+
+  const closes = prices.filter((p) => p.close > 0).map((p) => p.close);
+  if (closes.length < 2) return null;
+
+  const min = Math.min(...closes);
+  const max = Math.max(...closes);
+  const range2 = max - min || 1;
+  const isPositive = closes[closes.length - 1] >= closes[0];
+  const color = isPositive ? '#16a34a' : '#dc2626';
+
+  const points = closes
+    .map((c, i) => {
+      const x = (i / (closes.length - 1)) * CHART_WIDTH;
+      const y = CHART_HEIGHT - ((c - min) / range2) * (CHART_HEIGHT - 20) - 10;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <View style={chartStyles.container}>
+      <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+        <Polyline points={points} fill="none" stroke={color} strokeWidth={2} />
+      </Svg>
+    </View>
+  );
+}
+
+const chartStyles = StyleSheet.create({
+  container: { height: CHART_HEIGHT, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden' },
+});
 
 export default function StockDetailScreen() {
   const { symbol } = useLocalSearchParams<{ symbol: string }>();
   const upperSymbol = (symbol || '').toUpperCase();
   const { data: quote, isLoading, error } = useStockQuote(upperSymbol);
+  const [range, setRange] = useState<HistoricalRange>('1Y');
 
   if (isLoading) {
     return (
@@ -28,9 +78,15 @@ export default function StockDetailScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.symbol}>{quote.symbol}</Text>
-        <Text style={styles.name}>{quote.name}</Text>
+        <View style={styles.headerRow}>
+          <StockLogo symbol={quote.symbol} size={48} />
+          <View>
+            <Text style={styles.symbol}>{quote.symbol}</Text>
+            <Text style={styles.name}>{quote.name}</Text>
+          </View>
+        </View>
       </View>
+
       <View style={styles.priceRow}>
         <Text style={styles.price}>{formatCurrency(quote.price)}</Text>
         <Text style={[styles.change, { color: isPositive ? '#16a34a' : '#dc2626' }]}>
@@ -38,6 +94,22 @@ export default function StockDetailScreen() {
           {quote.change.toFixed(2)} ({formatPercent(quote.changePercent)})
         </Text>
       </View>
+
+      {/* Chart */}
+      <MiniChart symbol={upperSymbol} range={range} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rangeRow}>
+        {RANGES.map((r) => (
+          <TouchableOpacity
+            key={r}
+            onPress={() => setRange(r)}
+            style={[styles.rangeBtn, range === r && styles.rangeBtnActive]}
+          >
+            <Text style={[styles.rangeBtnText, range === r && styles.rangeBtnTextActive]}>{r}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Stats */}
       <View style={styles.grid}>
         <StatItem label="Open" value={formatCurrency(quote.open)} />
         <StatItem label="High" value={formatCurrency(quote.high)} />
@@ -48,6 +120,8 @@ export default function StockDetailScreen() {
           <StatItem label="Market Cap" value={formatCompactNumber(quote.marketCap)} />
         ) : null}
       </View>
+
+      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
@@ -65,21 +139,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb', padding: 16 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   error: { color: '#dc2626', fontSize: 14 },
-  header: { marginBottom: 8 },
-  symbol: { fontSize: 28, fontWeight: 'bold' },
+  header: { marginBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  symbol: { fontSize: 24, fontWeight: 'bold' },
   name: { fontSize: 14, color: '#6b7280' },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, marginBottom: 24 },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, marginBottom: 16 },
   price: { fontSize: 32, fontWeight: '600' },
   change: { fontSize: 16, fontWeight: '500' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  rangeRow: { flexDirection: 'row', marginTop: 8, marginBottom: 16 },
+  rangeBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6, backgroundColor: '#f3f4f6', marginRight: 6 },
+  rangeBtnActive: { backgroundColor: '#2563eb' },
+  rangeBtnText: { fontSize: 12, fontWeight: '600', color: '#6b7280' },
+  rangeBtnTextActive: { color: '#fff' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statItem: {
-    width: '47%',
+    width: '48%',
     backgroundColor: '#ffffff',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
-  statLabel: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  statValue: { fontSize: 16, fontWeight: '500' },
+  statLabel: { fontSize: 11, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statValue: { fontSize: 16, fontWeight: '600' },
 });

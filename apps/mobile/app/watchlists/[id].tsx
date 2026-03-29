@@ -10,6 +10,7 @@ import {
   formatCurrency,
   formatPercent,
 } from '@alpha-stocks/core';
+import StockLogo from '../../components/stocks/StockLogo';
 
 export default function WatchlistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,6 +63,7 @@ export default function WatchlistDetailScreen() {
         <View style={styles.searchResults}>
           {searchResults.map((r) => (
             <TouchableOpacity key={r.symbol} style={styles.searchRow} onPress={() => handleAddSymbol(r.symbol)}>
+              <StockLogo symbol={r.symbol} size={24} />
               <Text style={styles.searchSymbol}>{r.symbol}</Text>
               <Text style={styles.searchName} numberOfLines={1}>{r.name}</Text>
             </TouchableOpacity>
@@ -81,9 +83,12 @@ export default function WatchlistDetailScreen() {
               onPress={() => router.push(`/stocks/${item.symbol}`)}
               onLongPress={() => id && removeItem.mutate({ itemId: item.id, watchlistId: id })}
             >
-              <View>
-                <Text style={styles.symbol}>{item.symbol}</Text>
-                <Text style={styles.name}>{quote?.name || ''}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <StockLogo symbol={item.symbol} size={36} />
+                <View>
+                  <Text style={styles.symbol}>{item.symbol}</Text>
+                  <Text style={styles.name}>{quote?.name || ''}</Text>
+                </View>
               </View>
               <View style={styles.priceCol}>
                 <Text style={styles.price}>{quote ? formatCurrency(quote.price) : '—'}</Text>

@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import StockSearch from '../../components/stocks/StockSearch';
+import StockLogo from '../../components/stocks/StockLogo';
 import {
   useWatchlists,
   usePortfolios,
@@ -57,7 +58,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Dashboard</Text>
+      <Text style={styles.title}>Home</Text>
       <StockSearch />
 
       {/* Portfolio snapshot */}
@@ -77,9 +78,12 @@ export default function DashboardScreen() {
           <Text style={styles.sectionLabel}>Top Movers</Text>
           {topMovers.map((q) => (
             <TouchableOpacity key={q.symbol} style={styles.row} onPress={() => router.push(`/stocks/${q.symbol}`)}>
-              <View>
-                <Text style={styles.symbol}>{q.symbol}</Text>
-                <Text style={styles.name} numberOfLines={1}>{q.name}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <StockLogo symbol={q.symbol} size={32} />
+                <View>
+                  <Text style={styles.symbol}>{q.symbol}</Text>
+                  <Text style={styles.name} numberOfLines={1}>{q.name}</Text>
+                </View>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.price}>{formatCurrency(q.price)}</Text>
