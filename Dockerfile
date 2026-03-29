@@ -17,11 +17,10 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages/core/node_modules ./packages/core/node_modules
 COPY . .
 
-# Build args become env vars for the Next.js build
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+# These are public/publishable keys — safe to include in the image.
+# They are inlined into the JS bundle by Next.js at build time.
+ENV NEXT_PUBLIC_SUPABASE_URL=https://wrduytomojpmymcjmvwh.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_Qviz7W3gktEZNRhWpSBmCQ_LzOaP0OM
 
 RUN pnpm --filter @alpha-stocks/web build
 
