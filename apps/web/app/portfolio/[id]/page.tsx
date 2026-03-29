@@ -17,6 +17,7 @@ import {
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 import Skeleton from '@/components/ui/Skeleton';
+import ImportTransactionsModal from '@/components/portfolio/ImportTransactionsModal';
 
 export default function PortfolioDetailPage({
   params,
@@ -29,6 +30,7 @@ export default function PortfolioDetailPage({
   const addTransaction = useAddTransaction();
   const deleteTransaction = useDeleteTransaction();
   const [showAddTx, setShowAddTx] = useState(false);
+  const [showImportCsv, setShowImportCsv] = useState(false);
 
   // Get unique symbols from transactions
   const symbols = useMemo(() => {
@@ -69,12 +71,20 @@ export default function PortfolioDetailPage({
             <p className="text-sm text-gray-500">{portfolio.description}</p>
           )}
         </div>
-        <button
-          onClick={() => setShowAddTx(true)}
-          className="ml-auto bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark"
-        >
-          Add Transaction
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() => setShowImportCsv(true)}
+            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            Import CSV
+          </button>
+          <button
+            onClick={() => setShowAddTx(true)}
+            className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark"
+          >
+            Add Transaction
+          </button>
+        </div>
       </div>
 
       {/* Summary metrics */}
@@ -208,6 +218,12 @@ export default function PortfolioDetailPage({
         onClose={() => setShowAddTx(false)}
         portfolioId={id}
         onAdd={addTransaction}
+      />
+
+      <ImportTransactionsModal
+        open={showImportCsv}
+        onClose={() => setShowImportCsv(false)}
+        portfolioId={id}
       />
     </div>
   );

@@ -93,3 +93,36 @@ export async function deleteTransaction(
   const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function bulkAddTransactions(
+  supabase: SupabaseClient,
+  portfolioId: string,
+  transactions: {
+    symbol: string;
+    type: TransactionType;
+    shares: number;
+    price_per_share: number;
+    fees?: number;
+    date: string;
+    notes?: string;
+  }[],
+): Promise<Transaction[]> {
+  const rows = transactions.map((t) => ({
+    portfolio_id: portfolioId,
+    symbol: t.symbol.toUpperCase(),
+    type: t.type,
+    shares: t.shares,
+    price_per_share: t.price_per_share,
+    fees: t.fees ?? 0,
+    date: t.date,
+    notes: t.notes || null,
+  }));
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert(rows)
+    .select();
+
+  if (error) throw error;
+  return data || [];
+}

@@ -83,3 +83,28 @@ export function useDeleteTransaction() {
     },
   });
 }
+
+export function useBulkAddTransactions() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      portfolioId,
+      transactions,
+    }: {
+      portfolioId: string;
+      transactions: {
+        symbol: string;
+        type: TransactionType;
+        shares: number;
+        price_per_share: number;
+        fees?: number;
+        date: string;
+        notes?: string;
+      }[];
+    }) => queries.bulkAddTransactions(supabase, portfolioId, transactions),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', variables.portfolioId] });
+    },
+  });
+}

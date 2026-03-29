@@ -11,6 +11,7 @@ export interface ApiClient {
   getCompanyProfile(symbol: string): Promise<CompanyProfile>;
   getNews(symbol?: string): Promise<NewsItem[]>;
   getEarningsCalendar(from: string, to: string): Promise<EarningsEvent[]>;
+  getStockLogo(symbol: string): Promise<string | null>;
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -33,5 +34,7 @@ export function createApiClient(baseUrl: string): ApiClient {
     getNews: (symbol) => fetchJson<NewsItem[]>(endpoints.newsUrl(baseUrl, symbol)),
     getEarningsCalendar: (from, to) =>
       fetchJson<EarningsEvent[]>(endpoints.earningsUrl(baseUrl, from, to)),
+    getStockLogo: (symbol) =>
+      fetchJson<{ logo: string | null }>(endpoints.logoUrl(baseUrl, symbol)).then((r) => r.logo),
   };
 }

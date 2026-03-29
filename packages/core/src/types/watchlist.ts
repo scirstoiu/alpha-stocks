@@ -4,6 +4,7 @@ export interface WatchlistItem {
   symbol: string;
   notes?: string;
   added_at: string;
+  sort_order: number;
 }
 
 export interface Watchlist {

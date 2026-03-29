@@ -26,3 +26,7 @@ export function newsUrl(baseUrl: string, symbol?: string): string {
 export function earningsUrl(baseUrl: string, from: string, to: string): string {
   return `${baseUrl}/api/earnings?from=${from}&to=${to}`;
 }
+
+export function logoUrl(baseUrl: string, symbol: string): string {
+  return `${baseUrl}/api/stocks/logo?symbol=${encodeURIComponent(symbol)}`;
+}

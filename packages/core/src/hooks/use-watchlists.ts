@@ -66,3 +66,15 @@ export function useRemoveWatchlistItem() {
     },
   });
 }
+
+export function useReorderWatchlistItems() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ watchlistId, items }: { watchlistId: string; items: { id: string; sort_order: number }[] }) =>
+      queries.reorderWatchlistItems(supabase, items),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist', variables.watchlistId] });
+    },
+  });
+}

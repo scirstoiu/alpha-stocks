@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStockSearch } from '@alpha-stocks/core';
 import { useRouter } from 'next/navigation';
+import StockLogo from './StockLogo';
 
 export default function StockSearch() {
   const [query, setQuery] = useState('');
@@ -58,9 +59,10 @@ export default function StockSearch() {
             <button
               key={result.symbol}
               onClick={() => handleSelect(result.symbol)}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between border-b border-gray-100 last:border-0"
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-0"
             >
-              <div>
+              <StockLogo symbol={result.symbol} size={24} />
+              <div className="flex-1">
                 <span className="font-medium">{result.symbol}</span>
                 <span className="text-sm text-gray-500 ml-2">{result.name}</span>
               </div>

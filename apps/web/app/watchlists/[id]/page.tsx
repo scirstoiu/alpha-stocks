@@ -1,18 +1,109 @@
 'use client';
 
-import { use, useState, useRef, useEffect } from 'react';
+import { use, useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   useWatchlist,
   useAddWatchlistItem,
   useRemoveWatchlistItem,
+  useReorderWatchlistItems,
   useStockQuotes,
   useStockSearch,
   formatCurrency,
   formatPercent,
+  type WatchlistItem,
 } from '@alpha-stocks/core';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
+import StockLogo from '@/components/stocks/StockLogo';
+
+function SortableRow({
+  item,
+  quote,
+  onRemove,
+}: {
+  item: WatchlistItem;
+  quote?: { name: string; price: number; change: number; changePercent: number };
+  onRemove: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isPositive = (quote?.change ?? 0) >= 0;
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b border-gray-100 hover:bg-gray-50">
+      <td className="px-2 py-3 w-8">
+        <button
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none"
+          {...attributes}
+          {...listeners}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="5" cy="3" r="1.5" />
+            <circle cx="11" cy="3" r="1.5" />
+            <circle cx="5" cy="8" r="1.5" />
+            <circle cx="11" cy="8" r="1.5" />
+            <circle cx="5" cy="13" r="1.5" />
+            <circle cx="11" cy="13" r="1.5" />
+          </svg>
+        </button>
+      </td>
+      <td className="px-4 py-3">
+        <Link
+          href={`/stocks/${item.symbol}`}
+          className="font-medium text-primary hover:underline inline-flex items-center gap-2"
+        >
+          <StockLogo symbol={item.symbol} size={24} />
+          {item.symbol}
+        </Link>
+      </td>
+      <td className="px-4 py-3 text-gray-600">{quote?.name || '—'}</td>
+      <td className="px-4 py-3 text-right font-medium">
+        {quote ? formatCurrency(quote.price) : '—'}
+      </td>
+      <td className={`px-4 py-3 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
+        {quote ? `${isPositive ? '+' : ''}${quote.change.toFixed(2)}` : '—'}
+      </td>
+      <td className={`px-4 py-3 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
+        {quote ? formatPercent(quote.changePercent) : '—'}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <button onClick={onRemove} className="text-red-400 hover:text-red-600 text-xs">
+          Remove
+        </button>
+      </td>
+    </tr>
+  );
+}
 
 export default function WatchlistDetailPage({
   params,
@@ -23,8 +114,17 @@ export default function WatchlistDetailPage({
   const { data: watchlist, isLoading } = useWatchlist(id);
   const addItem = useAddWatchlistItem();
   const removeItem = useRemoveWatchlistItem();
+  const reorderItems = useReorderWatchlistItems();
 
-  const symbols = watchlist?.items?.map((i) => i.symbol) || [];
+  // Local ordering state for optimistic DnD updates
+  const [orderedItems, setOrderedItems] = useState<WatchlistItem[]>([]);
+  useEffect(() => {
+    if (watchlist?.items) {
+      setOrderedItems(watchlist.items);
+    }
+  }, [watchlist?.items]);
+
+  const symbols = orderedItems.map((i) => i.symbol);
   const { data: quotes } = useStockQuotes(symbols);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,9 +137,29 @@ export default function WatchlistDetailPage({
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [searchQuery]);
 
-  function handleSearchChange(value: string) {
-    setSearchQuery(value);
-  }
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = orderedItems.findIndex((i) => i.id === active.id);
+      const newIndex = orderedItems.findIndex((i) => i.id === over.id);
+      const newItems = arrayMove(orderedItems, oldIndex, newIndex);
+
+      // Optimistic update
+      setOrderedItems(newItems);
+
+      // Persist new sort_order values
+      const updates = newItems.map((item, index) => ({ id: item.id, sort_order: index }));
+      reorderItems.mutate({ watchlistId: id, items: updates });
+    },
+    [orderedItems, id, reorderItems],
+  );
 
   async function handleAddSymbol(symbol: string) {
     await addItem.mutateAsync({ watchlistId: id, symbol });
@@ -68,7 +188,7 @@ export default function WatchlistDetailPage({
         <Link href="/watchlists" className="text-gray-400 hover:text-gray-600">&larr;</Link>
         <h1 className="text-2xl font-bold">{watchlist.name}</h1>
         <span className="text-sm text-gray-500">
-          {watchlist.items?.length || 0} stock{(watchlist.items?.length || 0) !== 1 ? 's' : ''}
+          {orderedItems.length} stock{orderedItems.length !== 1 ? 's' : ''}
         </span>
       </div>
 
@@ -77,7 +197,7 @@ export default function WatchlistDetailPage({
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Add a stock..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
@@ -87,9 +207,10 @@ export default function WatchlistDetailPage({
               <button
                 key={r.symbol}
                 onClick={() => handleAddSymbol(r.symbol)}
-                className="w-full px-3 py-2 text-left hover:bg-gray-50 text-sm flex justify-between"
+                className="w-full px-3 py-2 text-left hover:bg-gray-50 text-sm flex items-center gap-2"
               >
-                <span>
+                <StockLogo symbol={r.symbol} size={20} />
+                <span className="flex-1">
                   <strong>{r.symbol}</strong> {r.name}
                 </span>
                 <span className="text-gray-400">{r.type}</span>
@@ -100,62 +221,35 @@ export default function WatchlistDetailPage({
       </div>
 
       {/* Watchlist table */}
-      {watchlist.items && watchlist.items.length > 0 ? (
+      {orderedItems.length > 0 ? (
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Symbol</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Price</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Change</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Change %</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {watchlist.items.map((item) => {
-                const quote = quoteMap.get(item.symbol);
-                const isPositive = (quote?.change ?? 0) >= 0;
-                return (
-                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/stocks/${item.symbol}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {item.symbol}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{quote?.name || '—'}</td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      {quote ? formatCurrency(quote.price) : '—'}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}
-                    >
-                      {quote ? `${isPositive ? '+' : ''}${quote.change.toFixed(2)}` : '—'}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}
-                    >
-                      {quote ? formatPercent(quote.changePercent) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() =>
-                          removeItem.mutate({ itemId: item.id, watchlistId: id })
-                        }
-                        className="text-red-400 hover:text-red-600 text-xs"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="w-8 px-2 py-3"></th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Symbol</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Price</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Change</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Change %</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <SortableContext items={orderedItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                <tbody>
+                  {orderedItems.map((item) => (
+                    <SortableRow
+                      key={item.id}
+                      item={item}
+                      quote={quoteMap.get(item.symbol)}
+                      onRemove={() => removeItem.mutate({ itemId: item.id, watchlistId: id })}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
         </Card>
       ) : (
         <Card>
