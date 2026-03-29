@@ -6,8 +6,8 @@ export function useStockQuote(symbol: string) {
   return useQuery({
     queryKey: ['quote', symbol],
     queryFn: () => api.getQuote(symbol),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
     enabled: !!symbol,
   });
 }
@@ -17,8 +17,8 @@ export function useStockQuotes(symbols: string[]) {
   return useQuery({
     queryKey: ['quotes', ...symbols.sort()],
     queryFn: () => api.getQuotes(symbols),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
     enabled: symbols.length > 0,
   });
 }

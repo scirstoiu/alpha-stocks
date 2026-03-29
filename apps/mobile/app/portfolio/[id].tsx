@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import {
   usePortfolio,
@@ -49,6 +50,15 @@ export default function PortfolioDetailScreen() {
     .runOnJS(true);
 
   const gesture = Gesture.Race(flingLeft, flingRight);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['quotes'] });
+    await queryClient.invalidateQueries({ queryKey: ['transactions', id] });
+    setRefreshing(false);
+  }, [queryClient, id]);
+
   const { data: transactions } = useTransactions(id || '');
 
   const symbols = useMemo(() => {
@@ -70,7 +80,7 @@ export default function PortfolioDetailScreen() {
 
   return (
     <GestureDetector gesture={gesture}>
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}>
         {totalCount > 1 && (
           <Text style={styles.pageIndicator}>{currentIdx + 1} / {totalCount}</Text>
         )}

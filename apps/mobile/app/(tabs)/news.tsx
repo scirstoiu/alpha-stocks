@@ -1,4 +1,6 @@
-import { View, Text, FlatList, TouchableOpacity, Linking, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Linking, RefreshControl, StyleSheet } from 'react-native';
+import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNews, type NewsItem } from '@alpha-stocks/core';
 
 function timeAgo(ts: number): string {
@@ -13,6 +15,14 @@ function timeAgo(ts: number): string {
 
 export default function NewsScreen() {
   const { data: news, isLoading } = useNews();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['news'] });
+    setRefreshing(false);
+  }, [queryClient]);
 
   return (
     <View style={styles.container}>
@@ -23,6 +33,7 @@ export default function NewsScreen() {
       <FlatList
         data={news}
         keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}

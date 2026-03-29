@@ -1,6 +1,7 @@
-import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, RefreshControl, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useWatchlist,
   useAddWatchlistItem,
@@ -18,6 +19,15 @@ export default function WatchlistDetailScreen() {
   const addItem = useAddWatchlistItem();
   const removeItem = useRemoveWatchlistItem();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['quotes'] });
+    await queryClient.invalidateQueries({ queryKey: ['watchlist', id] });
+    setRefreshing(false);
+  }, [queryClient, id]);
 
   const symbols = watchlist?.items?.map((i) => i.symbol) || [];
   const { data: quotes } = useStockQuotes(symbols);
@@ -74,6 +84,7 @@ export default function WatchlistDetailScreen() {
       <FlatList
         data={watchlist?.items}
         keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}
         renderItem={({ item }) => {
           const quote = quoteMap.get(item.symbol);
           const isPositive = (quote?.change ?? 0) >= 0;

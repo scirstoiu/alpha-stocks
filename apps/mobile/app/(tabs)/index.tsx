@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import StockSearch from '../../components/stocks/StockSearch';
 import StockLogo from '../../components/stocks/StockLogo';
 import {
@@ -23,8 +24,16 @@ function timeAgo(ts: number): string {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: watchlists } = useWatchlists();
   const { data: news } = useNews();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
 
   const allSymbols = useMemo(() => {
     const s: string[] = [];
@@ -40,7 +49,7 @@ export default function HomeScreen() {
   }, [wlQuotes]);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}>
       <StockSearch />
 
       {/* Top movers */}
