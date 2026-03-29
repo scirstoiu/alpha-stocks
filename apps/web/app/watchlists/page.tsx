@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useWatchlists, useCreateWatchlist, useDeleteWatchlist } from '@alpha-stocks/core';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
@@ -12,6 +13,14 @@ export default function WatchlistsPage() {
   const deleteWatchlist = useDeleteWatchlist();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+  const router = useRouter();
+
+  // Auto-redirect to the single watchlist if there's only one
+  useEffect(() => {
+    if (watchlists && watchlists.length === 1) {
+      router.replace(`/watchlists/${watchlists[0].id}`);
+    }
+  }, [watchlists, router]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -19,6 +28,11 @@ export default function WatchlistsPage() {
     await createWatchlist.mutateAsync(newName.trim());
     setNewName('');
     setShowCreate(false);
+  }
+
+  // Don't render the list if we're about to redirect
+  if (isLoading || (watchlists && watchlists.length === 1)) {
+    return <p className="text-gray-500">Loading...</p>;
   }
 
   return (
@@ -32,8 +46,6 @@ export default function WatchlistsPage() {
           New Watchlist
         </button>
       </div>
-
-      {isLoading && <p className="text-gray-500">Loading...</p>}
 
       {watchlists && watchlists.length === 0 && (
         <Card>
