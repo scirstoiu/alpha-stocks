@@ -194,6 +194,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 2 },
   cardValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
   cardChange: { fontSize: 14, fontWeight: '600' },
-  cardTotalGain: { fontSize: 13, fontWeight: '500', marginTop: 2 },
+  cardTotalGain: { fontSize: 14, fontWeight: '500', marginTop: 2 },
   cardHint: { fontSize: 12, color: '#9ca3af', marginTop: 6 },
 });
