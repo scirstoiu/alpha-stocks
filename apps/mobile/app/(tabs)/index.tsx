@@ -11,7 +11,7 @@ import {
   formatPercent,
 } from '@alpha-stocks/core';
 
-type MarketTab = 'us' | 'europe' | 'romania';
+type MarketTab = 'us' | 'europe' | 'asia';
 
 const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
   us: [
@@ -26,11 +26,11 @@ const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
     { symbol: '^FCHI', name: 'CAC 40' },
     { symbol: '^STOXX50E', name: 'STOXX 50' },
   ],
-  romania: [
-    { symbol: 'SNP.BU', name: 'OMV Petrom' },
-    { symbol: 'TLV.BU', name: 'Banca Transilvania' },
-    { symbol: 'H2O.BU', name: 'Hidroelectrica' },
-    { symbol: 'SNG.BU', name: 'Romgaz' },
+  asia: [
+    { symbol: '^N225', name: 'Nikkei 225' },
+    { symbol: '^HSI', name: 'Hang Seng' },
+    { symbol: '000001.SS', name: 'Shanghai' },
+    { symbol: '^KS11', name: 'KOSPI' },
   ],
 };
 
@@ -80,7 +80,7 @@ export default function HomeScreen() {
   const tabs: { key: MarketTab; label: string }[] = [
     { key: 'us', label: 'US' },
     { key: 'europe', label: 'Europe' },
-    { key: 'romania', label: 'Romania' },
+    { key: 'asia', label: 'Asia' },
   ];
 
   return (

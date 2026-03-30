@@ -19,7 +19,7 @@ import {
 
 // --- Market Indices ---
 
-type MarketTab = 'us' | 'europe' | 'romania';
+type MarketTab = 'us' | 'europe' | 'asia';
 
 const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
   us: [
@@ -36,12 +36,12 @@ const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
     { symbol: '^STOXX50E', name: 'STOXX 50' },
     { symbol: '^IBEX', name: 'IBEX 35' },
   ],
-  romania: [
-    { symbol: 'SNP.BU', name: 'OMV Petrom' },
-    { symbol: 'TLV.BU', name: 'Banca Transilvania' },
-    { symbol: 'H2O.BU', name: 'Hidroelectrica' },
-    { symbol: 'SNG.BU', name: 'Romgaz' },
-    { symbol: 'FP.BU', name: 'Fondul Proprietatea' },
+  asia: [
+    { symbol: '^N225', name: 'Nikkei 225' },
+    { symbol: '^HSI', name: 'Hang Seng' },
+    { symbol: '000001.SS', name: 'Shanghai' },
+    { symbol: '^KS11', name: 'KOSPI' },
+    { symbol: '^STI', name: 'Straits Times' },
   ],
 };
 
@@ -58,7 +58,7 @@ function MarketIndices() {
   const tabs: { key: MarketTab; label: string }[] = [
     { key: 'us', label: 'US' },
     { key: 'europe', label: 'Europe' },
-    { key: 'romania', label: 'Romania' },
+    { key: 'asia', label: 'Asia' },
   ];
 
   return (
@@ -93,21 +93,24 @@ function MarketIndices() {
                 <Link
                   key={idx.symbol}
                   href={`/stocks/${encodeURIComponent(idx.symbol)}`}
-                  className="flex-shrink-0 w-44 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-white"
+                  className="flex-shrink-0 w-48 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-white"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-xs px-1 py-0.5 rounded ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}
-                    >
+                  {/* Row 1: arrow icon + name + pct */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md text-sm ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
                       {isPositive ? '↑' : '↓'}
                     </span>
-                    <span className="font-semibold text-sm truncate">{idx.name}</span>
-                    <span className={`text-xs ml-auto font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                    <span className="font-semibold text-sm truncate flex-1">{idx.name}</span>
+                    <span className={`text-sm font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
                       {q ? formatPercent(q.changePercent) : '—'}
                     </span>
                   </div>
-                  <div className="text-sm font-medium">{q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</div>
-                  <div className={`text-xs ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                  {/* Row 2: price */}
+                  <div className="text-base font-semibold">
+                    {q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                  </div>
+                  {/* Row 3: change */}
+                  <div className={`text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
                     {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
                   </div>
                 </Link>
