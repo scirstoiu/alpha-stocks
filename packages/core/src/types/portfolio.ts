@@ -22,6 +22,7 @@ export interface Position {
   currentValue?: number;
   unrealizedGain?: number;
   unrealizedGainPercent?: number;
+  dayChange?: number;
 }
 
 export interface Portfolio {

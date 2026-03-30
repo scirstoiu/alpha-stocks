@@ -137,6 +137,11 @@ export default function PortfolioDetailScreen() {
               </View>
               <View style={styles.posRight}>
                 <Text style={styles.posValue}>{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</Text>
+                {pos.dayChange != null && (
+                  <Text style={[styles.posDayChange, { color: pos.dayChange >= 0 ? '#16a34a' : '#dc2626' }]}>
+                    {pos.dayChange >= 0 ? '+' : ''}{formatCurrency(pos.dayChange)}
+                  </Text>
+                )}
                 {pos.unrealizedGain != null && (
                   <Text style={[styles.posGain, { color: pos.unrealizedGain >= 0 ? '#16a34a' : '#dc2626' }]}>
                     {formatPercent(pos.unrealizedGainPercent!)}
@@ -196,6 +201,7 @@ const styles = StyleSheet.create({
   posShares: { fontSize: 11, color: '#6b7280', marginTop: 2 },
   posRight: { alignItems: 'flex-end' },
   posValue: { fontWeight: '600', fontSize: 15 },
+  posDayChange: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   posGain: { fontSize: 12, marginTop: 2 },
   txRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
   txLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },

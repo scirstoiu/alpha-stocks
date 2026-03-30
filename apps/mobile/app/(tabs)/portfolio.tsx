@@ -59,8 +59,8 @@ function PortfolioCard({ portfolio, onDelete, onSummary }: {
             <Text style={[styles.cardChange, { color: isNeg ? '#dc2626' : '#16a34a' }]}>
               {isNeg ? '' : '+'}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
             </Text>
-            <Text style={[styles.cardTotalGain, { color: summary.totalUnrealizedGain >= 0 ? '#16a34a' : '#dc2626' }]}>
-              {summary.totalUnrealizedGain >= 0 ? '+' : ''}{formatCurrency(summary.totalUnrealizedGain)} ({formatPercent(summary.totalUnrealizedGainPercent)}) total
+            <Text style={[styles.cardTotalGain, { color: isNeg ? '#dc2626' : '#16a34a' }]}>
+              {isNeg ? '' : '+'}{formatCurrency(summary.dayChange)}
             </Text>
           </View>
         </View>

@@ -39,6 +39,8 @@ export function computePositions(
         ? (unrealizedGain / pos.totalCost) * 100
         : undefined;
 
+    const dayChange = quote ? quote.change * pos.shares : undefined;
+
     positions.push({
       symbol,
       shares: pos.shares,
@@ -48,6 +50,7 @@ export function computePositions(
       currentValue,
       unrealizedGain,
       unrealizedGainPercent,
+      dayChange,
     });
   }
 
