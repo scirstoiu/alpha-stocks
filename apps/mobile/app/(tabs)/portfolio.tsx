@@ -48,17 +48,29 @@ function PortfolioCard({ portfolio, onDelete, onSummary }: {
       onLongPress={onDelete}
       activeOpacity={0.7}
     >
-      <Text style={styles.cardTitle}>{portfolio.name}</Text>
       {summary ? (
-        <>
-          <Text style={styles.cardValue}>{formatCurrency(summary.totalValue)}</Text>
-          <Text style={[styles.cardChange, { color: isNeg ? '#dc2626' : '#16a34a' }]}>
-            {isNeg ? '' : '+'}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
-          </Text>
-        </>
-      ) : transactions && transactions.length === 0 ? (
-        <Text style={styles.cardHint}>No transactions yet</Text>
-      ) : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={styles.cardTitle}>{portfolio.name}</Text>
+            <Text style={styles.cardValue}>{formatCurrency(summary.totalValue)}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={[styles.cardChange, { color: isNeg ? '#dc2626' : '#16a34a' }]}>
+              {isNeg ? '' : '+'}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+            </Text>
+            <Text style={[styles.cardTotalGain, { color: summary.totalUnrealizedGain >= 0 ? '#16a34a' : '#dc2626' }]}>
+              {summary.totalUnrealizedGain >= 0 ? '+' : ''}{formatCurrency(summary.totalUnrealizedGain)} ({formatPercent(summary.totalUnrealizedGainPercent)}) total
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View>
+          <Text style={styles.cardTitle}>{portfolio.name}</Text>
+          {transactions && transactions.length === 0 ? (
+            <Text style={styles.cardHint}>No transactions yet</Text>
+          ) : null}
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -168,9 +180,10 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: '#2563eb', paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center' },
   submitBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
-  card: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#2563eb', borderWidth: 1, borderColor: '#e5e7eb' },
-  cardTitle: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
-  cardValue: { fontSize: 22, fontWeight: '800', color: '#111827' },
-  cardChange: { fontSize: 12, fontWeight: '500', marginTop: 3 },
+  card: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#2563eb', borderWidth: 1, borderColor: '#e5e7eb' },
+  cardTitle: { fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 2 },
+  cardValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  cardChange: { fontSize: 12, fontWeight: '500' },
+  cardTotalGain: { fontSize: 11, fontWeight: '400', marginTop: 2 },
   cardHint: { fontSize: 12, color: '#9ca3af', marginTop: 6 },
 });

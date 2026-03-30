@@ -91,7 +91,7 @@ export default function Header() {
             </nav>
 
             <div className="hidden md:flex items-center gap-3">
-              <div className="w-56">
+              <div className="w-44">
                 <StockSearch />
               </div>
               <span className="text-sm text-gray-500">{user.email}</span>

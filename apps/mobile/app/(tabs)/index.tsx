@@ -2,7 +2,6 @@ import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet } 
 import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import StockSearch from '../../components/stocks/StockSearch';
 import StockLogo from '../../components/stocks/StockLogo';
 import {
   useWatchlists,
@@ -11,6 +10,29 @@ import {
   formatCurrency,
   formatPercent,
 } from '@alpha-stocks/core';
+
+type MarketTab = 'us' | 'europe' | 'romania';
+
+const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
+  us: [
+    { symbol: '^GSPC', name: 'S&P 500' },
+    { symbol: '^DJI', name: 'Dow Jones' },
+    { symbol: '^IXIC', name: 'Nasdaq' },
+    { symbol: '^RUT', name: 'Russell 2000' },
+  ],
+  europe: [
+    { symbol: '^GDAXI', name: 'DAX' },
+    { symbol: '^FTSE', name: 'FTSE 100' },
+    { symbol: '^FCHI', name: 'CAC 40' },
+    { symbol: '^STOXX50E', name: 'STOXX 50' },
+  ],
+  romania: [
+    { symbol: 'SNP.BU', name: 'OMV Petrom' },
+    { symbol: 'TLV.BU', name: 'Banca Transilvania' },
+    { symbol: 'H2O.BU', name: 'Hidroelectrica' },
+    { symbol: 'SNG.BU', name: 'Romgaz' },
+  ],
+};
 
 function timeAgo(ts: number): string {
   const seconds = Math.floor((Date.now() - ts) / 1000);
@@ -28,6 +50,7 @@ export default function HomeScreen() {
   const { data: watchlists } = useWatchlists();
   const { data: news } = useNews();
   const [refreshing, setRefreshing] = useState(false);
+  const [marketTab, setMarketTab] = useState<MarketTab>('us');
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -35,6 +58,12 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
+  // Market indices
+  const indexSymbols = INDICES[marketTab].map((i) => i.symbol);
+  const { data: indexQuotes } = useStockQuotes(indexSymbols);
+  const indexMap = useMemo(() => new Map(indexQuotes?.map((q) => [q.symbol, q])), [indexQuotes]);
+
+  // Top movers
   const allSymbols = useMemo(() => {
     const s: string[] = [];
     watchlists?.forEach((wl) => wl.items?.forEach((i) => s.push(i.symbol)));
@@ -48,9 +77,47 @@ export default function HomeScreen() {
     return [...wlQuotes].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 5);
   }, [wlQuotes]);
 
+  const tabs: { key: MarketTab; label: string }[] = [
+    { key: 'us', label: 'US' },
+    { key: 'europe', label: 'Europe' },
+    { key: 'romania', label: 'Romania' },
+  ];
+
   return (
     <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}>
-      <StockSearch />
+      {/* Market indices */}
+      <View style={styles.section}>
+        <View style={styles.tabRow}>
+          <Text style={styles.sectionLabel}>Markets</Text>
+          {tabs.map((t) => (
+            <TouchableOpacity
+              key={t.key}
+              onPress={() => setMarketTab(t.key)}
+              style={[styles.tab, marketTab === t.key && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, marketTab === t.key && styles.tabTextActive]}>{t.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+          {INDICES[marketTab].map((idx) => {
+            const q = indexMap.get(idx.symbol);
+            const pos = (q?.change ?? 0) >= 0;
+            return (
+              <View key={idx.symbol} style={styles.indexCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={[styles.indexArrow, { color: pos ? '#16a34a' : '#dc2626' }]}>{pos ? '↑' : '↓'}</Text>
+                  <Text style={styles.indexName} numberOfLines={1}>{idx.name}</Text>
+                </View>
+                <Text style={styles.indexPrice}>{q ? q.price.toFixed(2) : '—'}</Text>
+                <Text style={[styles.indexChange, { color: pos ? '#16a34a' : '#dc2626' }]}>
+                  {q ? `${pos ? '+' : ''}${q.change.toFixed(2)} (${formatPercent(q.changePercent)})` : ''}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* Top movers */}
       {topMovers.length > 0 && (
@@ -98,6 +165,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, paddingTop: 48, backgroundColor: '#f9fafb' },
   section: { marginTop: 20 },
   sectionLabel: { fontSize: 12, fontWeight: '500', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  tabRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tab: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  tabActive: { backgroundColor: 'rgba(37,99,235,0.1)' },
+  tabText: { fontSize: 13, fontWeight: '500', color: '#6b7280' },
+  tabTextActive: { color: '#2563eb' },
+  indexCard: { width: 140, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', padding: 10, marginRight: 10 },
+  indexArrow: { fontSize: 12 },
+  indexName: { fontSize: 13, fontWeight: '600', flex: 1 },
+  indexPrice: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+  indexChange: { fontSize: 11, marginTop: 2 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
   symbol: { fontWeight: '600', fontSize: 14 },
   name: { fontSize: 11, color: '#6b7280', marginTop: 2, maxWidth: 180 },

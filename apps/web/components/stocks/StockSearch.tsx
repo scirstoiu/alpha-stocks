@@ -45,7 +45,7 @@ export default function StockSearch() {
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="Search stocks, ETFs..."
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
       />
       {isOpen && debouncedQuery.length >= 2 && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
