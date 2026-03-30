@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#f0f7ff', padding: 14, borderRadius: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#2563eb', borderWidth: 1, borderColor: '#dbeafe' },
   cardTitle: { fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 2 },
   cardValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  cardChange: { fontSize: 13, fontWeight: '600' },
-  cardTotalGain: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  cardChange: { fontSize: 14, fontWeight: '600' },
+  cardTotalGain: { fontSize: 13, fontWeight: '500', marginTop: 2 },
   cardHint: { fontSize: 12, color: '#9ca3af', marginTop: 6 },
 });
