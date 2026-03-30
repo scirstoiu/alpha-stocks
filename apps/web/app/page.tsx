@@ -88,9 +88,10 @@ function MarketIndices() {
               const q = quoteMap.get(idx.symbol);
               const isPositive = (q?.change ?? 0) >= 0;
               return (
-                <div
+                <Link
                   key={idx.symbol}
-                  className="flex-shrink-0 w-44 border border-gray-200 rounded-lg p-3 bg-white"
+                  href={`/stocks/${encodeURIComponent(idx.symbol)}`}
+                  className="flex-shrink-0 w-44 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-white"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span
@@ -107,7 +108,7 @@ function MarketIndices() {
                   <div className={`text-xs ${isPositive ? 'text-gain' : 'text-loss'}`}>
                     {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
                   </div>
-                </div>
+                </Link>
               );
             })}
       </div>
@@ -270,14 +271,26 @@ function MyNews() {
       </h3>
       <div className="divide-y divide-gray-100">
         {items.map((n) => (
-          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-2.5 hover:bg-gray-50">
-            <p className="text-sm font-medium line-clamp-1">{n.headline}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-gray-400">{n.source}</span>
-              {n.relatedSymbols?.slice(0, 3).map((s) => (
-                <span key={s} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-medium">{s}</span>
-              ))}
-              <span className="text-xs text-gray-400 ml-auto">{timeAgo(n.publishedAt)}</span>
+          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50">
+            {n.imageUrl ? (
+              <img
+                src={n.imageUrl}
+                alt=""
+                className="w-16 h-12 rounded object-cover flex-shrink-0 bg-gray-100"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            ) : (
+              <div className="w-16 h-12 rounded bg-gray-100 flex-shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium line-clamp-2">{n.headline}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-gray-400">{n.source}</span>
+                {n.relatedSymbols?.slice(0, 3).map((s) => (
+                  <span key={s} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-medium">{s}</span>
+                ))}
+                <span className="text-xs text-gray-400 ml-auto">{timeAgo(n.publishedAt)}</span>
+              </div>
             </div>
           </a>
         ))}

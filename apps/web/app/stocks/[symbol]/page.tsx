@@ -11,7 +11,7 @@ export default function StockDetailPage({
   params: Promise<{ symbol: string }>;
 }) {
   const { symbol } = use(params);
-  const upperSymbol = symbol.toUpperCase();
+  const upperSymbol = decodeURIComponent(symbol).toUpperCase();
 
   return (
     <div>
