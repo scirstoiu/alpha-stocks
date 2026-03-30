@@ -6,6 +6,14 @@ import { useHistoricalPrices, type HistoricalRange } from '@alpha-stocks/core';
 
 const RANGES: HistoricalRange[] = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y'];
 
+// Detect if symbol is a currency pair or low-price instrument needing more decimals
+function getPrecision(sym: string, prices?: { close: number }[]): number {
+  if (sym.includes('=X') || sym.includes('=x')) return 4;
+  const avg = prices?.length ? prices.reduce((s, p) => s + p.close, 0) / prices.length : 0;
+  if (avg > 0 && avg < 10) return 4;
+  return 2;
+}
+
 export default function StockChart({ symbol }: { symbol: string }) {
   const [range, setRange] = useState<HistoricalRange>('1Y');
   const { data: prices, isLoading } = useHistoricalPrices(symbol, range);
@@ -35,11 +43,13 @@ export default function StockChart({ symbol }: { symbol: string }) {
       },
     });
 
+    const precision = getPrecision(symbol, prices || undefined);
     const series = chart.addSeries(AreaSeries, {
       lineColor: '#2563eb',
       topColor: 'rgba(37, 99, 235, 0.3)',
       bottomColor: 'rgba(37, 99, 235, 0.01)',
       lineWidth: 2,
+      priceFormat: { type: 'price', precision, minMove: 1 / Math.pow(10, precision) },
     });
 
     chartRef.current = chart;

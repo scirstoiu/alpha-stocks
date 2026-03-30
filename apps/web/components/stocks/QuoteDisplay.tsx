@@ -31,6 +31,9 @@ export default function QuoteDisplay({ symbol }: { symbol: string }) {
   }
 
   const isPositive = quote.change >= 0;
+  const isForex = symbol.includes('=X') || symbol.includes('=x');
+  const decimals = isForex || quote.price < 10 ? 4 : 2;
+  const fmt = (v: number) => isForex ? v.toFixed(decimals) : formatCurrency(v);
 
   return (
     <Card>
@@ -39,24 +42,24 @@ export default function QuoteDisplay({ symbol }: { symbol: string }) {
         <span className="text-sm text-gray-500">{quote.symbol}</span>
       </div>
       <div className="flex items-baseline gap-3 mb-4">
-        <span className="text-3xl font-semibold">{formatCurrency(quote.price)}</span>
+        <span className="text-3xl font-semibold">{fmt(quote.price)}</span>
         <span className={`text-lg font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
           {isPositive ? '+' : ''}
-          {quote.change.toFixed(2)} ({formatPercent(quote.changePercent)})
+          {quote.change.toFixed(decimals)} ({formatPercent(quote.changePercent)})
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <div>
           <span className="text-gray-500">Open</span>
-          <p className="font-medium">{formatCurrency(quote.open)}</p>
+          <p className="font-medium">{fmt(quote.open)}</p>
         </div>
         <div>
           <span className="text-gray-500">High</span>
-          <p className="font-medium">{formatCurrency(quote.high)}</p>
+          <p className="font-medium">{fmt(quote.high)}</p>
         </div>
         <div>
           <span className="text-gray-500">Low</span>
-          <p className="font-medium">{formatCurrency(quote.low)}</p>
+          <p className="font-medium">{fmt(quote.low)}</p>
         </div>
         <div>
           <span className="text-gray-500">Volume</span>
@@ -64,7 +67,7 @@ export default function QuoteDisplay({ symbol }: { symbol: string }) {
         </div>
         <div>
           <span className="text-gray-500">Prev Close</span>
-          <p className="font-medium">{formatCurrency(quote.previousClose)}</p>
+          <p className="font-medium">{fmt(quote.previousClose)}</p>
         </div>
         {quote.marketCap && (
           <div>
