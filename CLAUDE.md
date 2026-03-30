@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Description
 
-Alpha Stocks — personal portfolio tracker and stock market analyzer with web (Next.js) and Android (Expo/React Native) apps sharing a TypeScript monorepo. Real-time quotes, interactive charts, portfolio P&L, watchlists, news, and earnings calendar.
+Alpha Stocks — personal portfolio tracker and stock market analyzer with web (Next.js) and Android (Expo/React Native) apps sharing a TypeScript monorepo. Real-time quotes, interactive charts, portfolio P&L, watchlists with drag & drop, market indices, CSV import, news, and earnings calendar.
 
 ## Commands
 
@@ -30,18 +30,19 @@ supabase/            Database migrations (Postgres with RLS)
 
 ### Data flow
 
-- **Market data** (quotes, charts, search, news, earnings): Both apps call Next.js API routes (`/api/stocks/*`, `/api/news`, `/api/earnings`) which proxy to yahoo-finance2 (primary, server-only) and Finnhub (secondary/fallback, also used for news + earnings).
+- **Market data** (quotes, charts, search, news, earnings, logos): Both apps call Next.js API routes (`/api/stocks/*`, `/api/news`, `/api/earnings`) which proxy to yahoo-finance2 (primary, server-only) and Finnhub (secondary/fallback, also used for news + earnings + logos). Batch quotes use `Promise.allSettled` for partial failure resilience.
 - **User data** (watchlists, portfolios, transactions): Stored in Supabase Postgres, accessed via Supabase JS client from `packages/core`. Auth via Google SSO through Supabase Auth. Row Level Security enforces per-user data isolation.
+- **Logo proxy**: `/api/stocks/logo?symbol=X&proxy=1` fetches logo from Finnhub profile2, serves image bytes with 30-day cache headers. Server-side in-memory cache avoids repeated Finnhub calls.
 - The mobile app depends on the Next.js server running for market data (both in dev and prod).
 
 ### Key shared code in packages/core
 
-- `src/types/` — Stock, Portfolio, Watchlist, Earnings, News types
+- `src/types/` — Stock, Portfolio (with sort_order), Watchlist (with sort_order), Earnings, News types
 - `src/providers/` — IStockProvider/IMarketDataProvider interfaces, yahoo-provider (server-only), finnhub-provider, provider-registry with fallback chain
-- `src/hooks/` — TanStack Query hooks for market data + Supabase CRUD hooks for watchlists/portfolios + auth hooks
+- `src/hooks/` — TanStack Query hooks for market data + Supabase CRUD hooks for watchlists/portfolios + auth hooks + reorder mutations + bulk transaction import
 - `src/calculations/` — Portfolio metrics (positions, realized/unrealized gains, ROI, dividends), formatting helpers
-- `src/api/` — Typed fetch client pointing to Next.js API routes
-- `src/supabase/` — Supabase client factory + query functions for watchlists and portfolios
+- `src/api/` — Typed fetch client pointing to Next.js API routes (includes logo endpoint)
+- `src/supabase/` — Supabase client factory + query functions for watchlists and portfolios (including reorder and bulk insert)
 
 ### Provider architecture
 
@@ -49,27 +50,44 @@ Providers in `packages/core/src/providers/` are **server-only** — they use yah
 
 ### API routes (apps/web/app/api/)
 
-- `/api/stocks/quote` — single or batch stock quotes
+- `/api/stocks/quote` — single or batch stock quotes (uses Promise.allSettled for partial failures)
 - `/api/stocks/search` — symbol search with autocomplete
 - `/api/stocks/historical` — OHLCV price history
 - `/api/stocks/profile` — company profile
+- `/api/stocks/logo` — logo image proxy with server-side caching + 30-day browser cache
 - `/api/news` — general or company-specific news
 - `/api/earnings` — earnings calendar by date range
+
+### UI libraries (web only)
+
+- `@dnd-kit/core` + `@dnd-kit/sortable` — drag & drop reordering for watchlist items and portfolio cards
+- `lightweight-charts` — stock price charts and portfolio value evolution chart
 
 ## Deployment
 
 ### Web — Google Cloud Run
 
-Multi-stage Dockerfile builds a standalone Next.js image. Cloud Build (`cloudbuild.yaml`) handles build, push, and deploy to `europe-west1`. Supabase public keys are passed as build args; `FINNHUB_API_KEY` is a runtime env var on the Cloud Run service.
+Multi-stage Dockerfile builds a standalone Next.js image. Cloud Build (`cloudbuild.yaml`) handles build, push, and deploy to `europe-west1`. Supabase public keys are passed as build args; `FINNHUB_API_KEY` is a runtime env var on the Cloud Run service. Auth callback uses `x-forwarded-proto` + `host` headers for correct redirect behind Cloud Run proxy.
 
 ### Mobile — EAS Build
 
 `eas.json` defines `preview` (APK) and `production` (AAB) profiles. The mobile app needs `API_BASE_URL` pointing to the deployed web server.
 
+### Database migrations
+
+Use Supabase CLI to push migrations:
+
+```bash
+supabase link --project-ref <ref>
+supabase db push
+```
+
+Migration files use timestamp format (e.g., `20240101000000_initial_schema.sql`).
+
 ## Environment Variables
 
 ```
-FINNHUB_API_KEY              — Finnhub free tier key (required for news/earnings)
+FINNHUB_API_KEY              — Finnhub free tier key (required for news/earnings/logos)
 NEXT_PUBLIC_SUPABASE_URL     — Supabase project URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY — Supabase publishable key
 ```
