@@ -237,36 +237,43 @@ function SortablePortfolioCard({
   const totalGain = summary ? summary.totalUnrealizedGain : null;
   const totalGainPct = summary ? summary.totalUnrealizedGainPercent : null;
 
+  const isDayPositive = summary ? summary.dayChange >= 0 : true;
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card
-        className="hover:shadow-md transition-shadow px-3 py-2.5 cursor-grab active:cursor-grabbing bg-sky-50/70 border-sky-100"
+      <div
+        className="border border-gray-200 rounded-lg px-3 py-2.5 bg-white hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing flex items-center gap-3"
         onClick={handleClick}
       >
         {summary ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-semibold text-xs text-gray-600 truncate">{portfolio.name}</h3>
-              <p className="text-sm font-bold">{formatCurrency(summary.totalValue)}</p>
+          <>
+            <span className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-base flex-shrink-0 ${isDayPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
+              {isDayPositive ? '↑' : '↓'}
+            </span>
+            <div className="flex gap-4 flex-1 min-w-0">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold truncate">{portfolio.name}</div>
+                <div className="text-sm text-gray-500">{formatCurrency(summary.totalValue)}</div>
+              </div>
+              <div className="text-right ml-auto flex-shrink-0">
+                <div className={`text-sm font-medium ${isDayPositive ? 'text-gain' : 'text-loss'}`}>
+                  {formatPercent(summary.dayChangePercent)}
+                </div>
+                <div className={`text-sm ${isDayPositive ? 'text-gain' : 'text-loss'}`}>
+                  {isDayPositive ? '+' : ''}{formatCurrency(summary.dayChange)}
+                </div>
+              </div>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className={`text-sm font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-                {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)})
-              </p>
-              <p className={`text-xs ${totalGain! >= 0 ? 'text-gain' : 'text-loss'}`}>
-                {totalGain! >= 0 ? '+' : ''}{formatCurrency(totalGain!)} ({formatPercent(totalGainPct!)}) total
-              </p>
-            </div>
-          </div>
+          </>
         ) : (
-          <div>
-            <h3 className="font-semibold text-xs text-gray-600">{portfolio.name}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold">{portfolio.name}</div>
+            <div className="text-xs text-gray-400 mt-0.5">
               {transactions && transactions.length === 0 ? 'No transactions yet' : 'Loading...'}
-            </p>
+            </div>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

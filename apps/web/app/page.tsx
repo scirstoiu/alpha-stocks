@@ -285,23 +285,13 @@ function MyNews() {
       </h3>
       <div className="divide-y divide-gray-100">
         {items.map((n) => (
-          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="flex gap-4 px-4 py-3 hover:bg-gray-50">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-gray-500">{n.source}</span>
-                <span className="text-xs text-gray-400">&middot;</span>
-                <span className="text-xs text-gray-400">{timeAgo(n.publishedAt)}</span>
-              </div>
-              <p className="text-sm font-medium line-clamp-2 leading-snug">{n.headline}</p>
+          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-3 hover:bg-gray-50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-medium text-gray-500">{n.source}</span>
+              <span className="text-xs text-gray-400">&middot;</span>
+              <span className="text-xs text-gray-400">{timeAgo(n.publishedAt)}</span>
             </div>
-            {n.imageUrl && (
-              <img
-                src={n.imageUrl}
-                alt=""
-                className="w-24 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            )}
+            <p className="text-sm font-medium line-clamp-2 leading-snug">{n.headline}</p>
           </a>
         ))}
       </div>
