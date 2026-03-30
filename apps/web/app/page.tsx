@@ -37,18 +37,18 @@ const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
     { symbol: '^IBEX', name: 'IBEX 35' },
   ],
   romania: [
-    { symbol: 'BET.RO', name: 'BET' },
-    { symbol: 'BETR.RO', name: 'BET-TR' },
-    { symbol: 'SNP.RO', name: 'OMV Petrom' },
-    { symbol: 'TLV.RO', name: 'Banca Transilvania' },
-    { symbol: 'H2O.RO', name: 'Hidroelectrica' },
+    { symbol: 'SNP.BU', name: 'OMV Petrom' },
+    { symbol: 'TLV.BU', name: 'Banca Transilvania' },
+    { symbol: 'H2O.BU', name: 'Hidroelectrica' },
+    { symbol: 'SNG.BU', name: 'Romgaz' },
+    { symbol: 'FP.BU', name: 'Fondul Proprietatea' },
   ],
 };
 
 function MarketIndices() {
   const [tab, setTab] = useState<MarketTab>('us');
   const symbols = INDICES[tab].map((i) => i.symbol);
-  const { data: quotes, isLoading } = useStockQuotes(symbols);
+  const { data: quotes, isLoading, isError } = useStockQuotes(symbols);
 
   const quoteMap = useMemo(() => {
     if (!quotes) return new Map();
@@ -84,6 +84,8 @@ function MarketIndices() {
           ? Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-20 w-44 flex-shrink-0 rounded-lg" />
             ))
+          : isError
+            ? <p className="text-sm text-gray-400 py-4">Unable to load market data.</p>
           : INDICES[tab].map((idx) => {
               const q = quoteMap.get(idx.symbol);
               const isPositive = (q?.change ?? 0) >= 0;

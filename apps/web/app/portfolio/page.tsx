@@ -131,7 +131,7 @@ export default function PortfoliosPage() {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={ordered.map((p) => p.id)} strategy={rectSortingStrategy}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {ordered.map((p) => (
               <SortablePortfolioCard key={p.id} portfolio={p} onSummary={reportSummary} />
             ))}
@@ -240,18 +240,18 @@ function SortablePortfolioCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card
-        className="hover:shadow-md transition-shadow px-4 py-3 cursor-grab active:cursor-grabbing bg-sky-50/70 border-sky-100"
+        className="hover:shadow-md transition-shadow px-3 py-2.5 cursor-grab active:cursor-grabbing bg-sky-50/70 border-sky-100"
         onClick={handleClick}
       >
         {summary ? (
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-sm">{portfolio.name}</h3>
-              <p className="text-base font-bold">{formatCurrency(summary.totalValue)}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-semibold text-xs text-gray-600 truncate">{portfolio.name}</h3>
+              <p className="text-sm font-bold">{formatCurrency(summary.totalValue)}</p>
             </div>
-            <div className="text-right">
-              <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-                {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+            <div className="text-right flex-shrink-0">
+              <p className={`text-sm font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)})
               </p>
               <p className={`text-xs ${totalGain! >= 0 ? 'text-gain' : 'text-loss'}`}>
                 {totalGain! >= 0 ? '+' : ''}{formatCurrency(totalGain!)} ({formatPercent(totalGainPct!)}) total
@@ -260,7 +260,7 @@ function SortablePortfolioCard({
           </div>
         ) : (
           <div>
-            <h3 className="font-semibold text-sm">{portfolio.name}</h3>
+            <h3 className="font-semibold text-xs text-gray-600">{portfolio.name}</h3>
             <p className="text-xs text-gray-400 mt-0.5">
               {transactions && transactions.length === 0 ? 'No transactions yet' : 'Loading...'}
             </p>

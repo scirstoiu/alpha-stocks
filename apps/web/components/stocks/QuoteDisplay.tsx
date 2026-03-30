@@ -35,8 +35,8 @@ export default function QuoteDisplay({ symbol }: { symbol: string }) {
   return (
     <Card>
       <div className="flex items-baseline justify-between mb-1">
-        <h2 className="text-2xl font-bold">{quote.symbol}</h2>
-        <span className="text-sm text-gray-500">{quote.name}</span>
+        <h2 className="text-2xl font-bold">{quote.name || quote.symbol}</h2>
+        <span className="text-sm text-gray-500">{quote.symbol}</span>
       </div>
       <div className="flex items-baseline gap-3 mb-4">
         <span className="text-3xl font-semibold">{formatCurrency(quote.price)}</span>

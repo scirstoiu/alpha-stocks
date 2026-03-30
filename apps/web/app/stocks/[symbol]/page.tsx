@@ -3,7 +3,6 @@
 import { use } from 'react';
 import QuoteDisplay from '@/components/stocks/QuoteDisplay';
 import StockChart from '@/components/stocks/StockChart';
-import StockSearch from '@/components/stocks/StockSearch';
 
 export default function StockDetailPage({
   params,
@@ -15,9 +14,6 @@ export default function StockDetailPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <StockSearch />
-      </div>
       <div className="space-y-6">
         <QuoteDisplay symbol={upperSymbol} />
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
