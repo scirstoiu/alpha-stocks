@@ -253,7 +253,7 @@ function SortablePortfolioCard({
             <div className="flex gap-4 flex-1 min-w-0">
               <div className="min-w-0">
                 <div className="text-sm font-semibold truncate">{portfolio.name}</div>
-                <div className="text-sm text-gray-500">{formatCurrency(summary.totalValue)}</div>
+                <div className="text-sm font-medium text-gray-700">{formatCurrency(summary.totalValue)}</div>
               </div>
               <div className="text-right ml-auto flex-shrink-0">
                 <div className={`text-sm font-medium ${isDayPositive ? 'text-gain' : 'text-loss'}`}>
