@@ -8,12 +8,18 @@ import {
   useReorderPortfolios,
   useTransactions,
   useStockQuotes,
+  useHistoricalPrices,
   computePortfolioSummary,
+  computePositions,
   formatCurrency,
   formatPercent,
   type Portfolio,
   type PortfolioSummary,
+  type Transaction,
+  type Position,
+  type HistoricalRange,
 } from '@alpha-stocks/core';
+import { createChart, AreaSeries, type IChartApi, type ISeriesApi, ColorType } from 'lightweight-charts';
 import {
   DndContext,
   closestCenter,
@@ -33,6 +39,8 @@ import { CSS } from '@dnd-kit/utilities';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 
+type PageTab = 'overview' | 'stats';
+
 export default function PortfoliosPage() {
   const { data: portfolios, isLoading } = usePortfolios();
   const createPortfolio = useCreatePortfolio();
@@ -40,13 +48,13 @@ export default function PortfoliosPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [activeTab, setActiveTab] = useState<PageTab>('overview');
 
   const [ordered, setOrdered] = useState<Portfolio[]>([]);
   useEffect(() => {
     if (portfolios) setOrdered(portfolios);
   }, [portfolios]);
 
-  // Collect summaries from child cards for total
   const [summaries, setSummaries] = useState<Map<string, PortfolioSummary>>(new Map());
   const reportSummary = useCallback((id: string, summary: PortfolioSummary) => {
     setSummaries((prev) => {
@@ -96,6 +104,11 @@ export default function PortfoliosPage() {
     setShowCreate(false);
   }
 
+  const tabs: { key: PageTab; label: string }[] = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'stats', label: 'Stats' },
+  ];
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -110,7 +123,7 @@ export default function PortfoliosPage() {
 
       {/* Total holdings */}
       {summaries.size > 0 && (
-        <div className="mb-6 bg-gradient-to-r from-gray-50 to-white rounded-xl px-6 py-4 border border-gray-100 flex items-baseline gap-4">
+        <div className="mb-4 bg-gradient-to-r from-gray-50 to-white rounded-xl px-6 py-4 border border-gray-100 flex items-baseline gap-4">
           <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Total Holdings</span>
           <span className="text-xl font-bold">{formatCurrency(totalValue.total)}</span>
           <span className={`text-sm font-medium ${totalValue.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
@@ -119,25 +132,48 @@ export default function PortfoliosPage() {
         </div>
       )}
 
-      {isLoading && <p className="text-gray-500">Loading...</p>}
+      {/* Tabs */}
+      <div className="flex gap-0 border-b border-gray-200 mb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === tab.key
+                ? 'border-gray-900 text-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {portfolios && portfolios.length === 0 && (
-        <Card>
-          <p className="text-gray-500 text-center py-8">
-            No portfolios yet. Create one to start tracking your investments.
-          </p>
-        </Card>
+      {activeTab === 'overview' && (
+        <>
+          {isLoading && <p className="text-gray-500">Loading...</p>}
+
+          {portfolios && portfolios.length === 0 && (
+            <Card>
+              <p className="text-gray-500 text-center py-8">
+                No portfolios yet. Create one to start tracking your investments.
+              </p>
+            </Card>
+          )}
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={ordered.map((p) => p.id)} strategy={rectSortingStrategy}>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {ordered.map((p) => (
+                  <SortablePortfolioCard key={p.id} portfolio={p} onSummary={reportSummary} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={ordered.map((p) => p.id)} strategy={rectSortingStrategy}>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {ordered.map((p) => (
-              <SortablePortfolioCard key={p.id} portfolio={p} onSummary={reportSummary} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {activeTab === 'stats' && <PortfolioStats summaries={summaries} portfolios={portfolios || []} />}
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Portfolio">
         <form onSubmit={handleCreate}>
@@ -178,6 +214,342 @@ export default function PortfoliosPage() {
   );
 }
 
+// --- Stats Tab ---
+
+const PIE_COLORS = [
+  '#2563eb', '#16a34a', '#dc2626', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
+  '#14b8a6', '#e11d48', '#0ea5e9', '#a855f7', '#eab308',
+];
+
+function PortfolioStats({ summaries, portfolios }: {
+  summaries: Map<string, PortfolioSummary>;
+  portfolios: Portfolio[];
+}) {
+  // Aggregate all positions across all portfolios
+  const allPositions = useMemo(() => {
+    const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number }>();
+    for (const s of summaries.values()) {
+      for (const pos of s.positions) {
+        const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0 };
+        existing.value += pos.currentValue || 0;
+        existing.shares += pos.shares;
+        existing.costBasis += pos.costBasis;
+        merged.set(pos.symbol, existing);
+      }
+    }
+    return [...merged.values()].sort((a, b) => b.value - a.value);
+  }, [summaries]);
+
+  const totalValue = allPositions.reduce((s, p) => s + p.value, 0);
+
+  // Portfolio allocation (by portfolio)
+  const portfolioAllocation = useMemo(() => {
+    return portfolios
+      .map((p) => {
+        const s = summaries.get(p.id);
+        return { name: p.name, value: s?.totalValue || 0 };
+      })
+      .filter((p) => p.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [portfolios, summaries]);
+
+  if (allPositions.length === 0) {
+    return <p className="text-gray-400 text-sm py-8 text-center">Add transactions to see portfolio stats.</p>;
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Stock Distribution */}
+      <div>
+        <h3 className="font-semibold mb-4">Stock Distribution</h3>
+        <div className="flex gap-8 flex-wrap">
+          {/* Pie chart (SVG) */}
+          <PieChart
+            data={allPositions.map((p, i) => ({
+              label: p.symbol,
+              value: p.value,
+              color: PIE_COLORS[i % PIE_COLORS.length],
+            }))}
+            size={220}
+          />
+          {/* Legend + table */}
+          <div className="flex-1 min-w-[300px]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-1.5 font-medium text-gray-400 text-xs">Symbol</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Value</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Weight</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Shares</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allPositions.map((pos, i) => (
+                  <tr key={pos.symbol} className="border-b border-gray-100">
+                    <td className="py-1.5 flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="font-medium">{pos.symbol}</span>
+                    </td>
+                    <td className="py-1.5 text-right">{formatCurrency(pos.value)}</td>
+                    <td className="py-1.5 text-right">{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</td>
+                    <td className="py-1.5 text-right text-gray-500">{pos.shares.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Portfolio Allocation */}
+      {portfolioAllocation.length > 1 && (
+        <div>
+          <h3 className="font-semibold mb-4">Portfolio Allocation</h3>
+          <div className="flex gap-8 flex-wrap">
+            <PieChart
+              data={portfolioAllocation.map((p, i) => ({
+                label: p.name,
+                value: p.value,
+                color: PIE_COLORS[i % PIE_COLORS.length],
+              }))}
+              size={180}
+            />
+            <div className="flex-1 min-w-[200px]">
+              {portfolioAllocation.map((p, i) => (
+                <div key={p.name} className="flex items-center justify-between py-1.5 border-b border-gray-100 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="font-medium">{p.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-medium">{formatCurrency(p.value)}</span>
+                    <span className="text-gray-400 ml-2 text-xs">{totalValue > 0 ? ((p.value / totalValue) * 100).toFixed(1) : 0}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Consolidated Value Over Time */}
+      <ConsolidatedChart summaries={summaries} portfolios={portfolios} />
+    </div>
+  );
+}
+
+// --- SVG Pie Chart ---
+
+function PieChart({ data, size }: {
+  data: { label: string; value: number; color: string }[];
+  size: number;
+}) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return null;
+
+  const radius = size / 2 - 4;
+  const cx = size / 2;
+  const cy = size / 2;
+  let startAngle = -Math.PI / 2;
+
+  const paths = data.map((d) => {
+    const pct = d.value / total;
+    const angle = pct * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+    const largeArc = angle > Math.PI ? 1 : 0;
+
+    const x1 = cx + radius * Math.cos(startAngle);
+    const y1 = cy + radius * Math.sin(startAngle);
+    const x2 = cx + radius * Math.cos(endAngle);
+    const y2 = cy + radius * Math.sin(endAngle);
+
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    startAngle = endAngle;
+
+    return <path key={d.label} d={path} fill={d.color} stroke="white" strokeWidth={2} />;
+  });
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
+      {paths}
+    </svg>
+  );
+}
+
+// --- Consolidated Value Chart ---
+
+function ConsolidatedChart({ summaries, portfolios }: {
+  summaries: Map<string, PortfolioSummary>;
+  portfolios: Portfolio[];
+}) {
+  // Get all unique symbols across all portfolios
+  const allSymbols = useMemo(() => {
+    const s = new Set<string>();
+    for (const summary of summaries.values()) {
+      for (const pos of summary.positions) s.add(pos.symbol);
+    }
+    return [...s];
+  }, [summaries]);
+
+  const [range, setRange] = useState<HistoricalRange>('1Y');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+
+  // Fetch all transactions for all portfolios
+  const txQueries = portfolios.map((p) => ({
+    id: p.id,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    query: useTransactions(p.id),
+  }));
+
+  const allTransactions = useMemo(() => {
+    const txs: Transaction[] = [];
+    for (const tq of txQueries) {
+      if (tq.query.data) txs.push(...tq.query.data);
+    }
+    return txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [txQueries]);
+
+  // Fetch historical prices for each symbol
+  const priceQueries = allSymbols.map((s) => ({
+    symbol: s,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    query: useHistoricalPrices(s, range),
+  }));
+
+  const allLoaded = priceQueries.every((q) => !q.query.isLoading) && txQueries.every((q) => !q.query.isLoading);
+
+  const chartData = useMemo(() => {
+    if (!allLoaded || allTransactions.length === 0) return [];
+
+    const priceMaps = new Map<string, Map<number, number>>();
+    for (const pq of priceQueries) {
+      if (!pq.query.data) continue;
+      const map = new Map<number, number>();
+      for (const p of pq.query.data) {
+        const day = new Date(p.timestamp);
+        day.setHours(0, 0, 0, 0);
+        map.set(day.getTime(), p.close);
+      }
+      priceMaps.set(pq.symbol, map);
+    }
+
+    const allTimestamps = new Set<number>();
+    for (const map of priceMaps.values()) {
+      for (const ts of map.keys()) allTimestamps.add(ts);
+    }
+    const sortedDays = [...allTimestamps].sort((a, b) => a - b);
+    if (sortedDays.length === 0) return [];
+
+    const positions = new Map<string, number>();
+    let txIndex = 0;
+    const points: { time: number; value: number }[] = [];
+
+    for (const dayTs of sortedDays) {
+      while (txIndex < allTransactions.length && new Date(allTransactions[txIndex].date).getTime() <= dayTs) {
+        const tx = allTransactions[txIndex];
+        const current = positions.get(tx.symbol) || 0;
+        if (tx.type === 'buy') positions.set(tx.symbol, current + tx.shares);
+        else if (tx.type === 'sell') positions.set(tx.symbol, Math.max(0, current - tx.shares));
+        txIndex++;
+      }
+
+      let totalValue = 0;
+      for (const [symbol, shares] of positions) {
+        if (shares <= 0) continue;
+        const priceMap = priceMaps.get(symbol);
+        if (!priceMap) continue;
+        let price = 0;
+        for (const [ts, p] of priceMap) {
+          if (ts <= dayTs) price = p;
+          else break;
+        }
+        if (price > 0) totalValue += shares * price;
+      }
+
+      if (totalValue > 0) points.push({ time: dayTs / 1000, value: totalValue });
+    }
+
+    return points;
+  }, [allLoaded, allTransactions, priceQueries]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const chart = createChart(containerRef.current, {
+      layout: { background: { type: ColorType.Solid, color: 'white' }, textColor: '#6b7280' },
+      grid: { vertLines: { color: '#f3f4f6' }, horzLines: { color: '#f3f4f6' } },
+      width: containerRef.current.clientWidth,
+      height: 350,
+      timeScale: { borderColor: '#e5e7eb' },
+      rightPriceScale: { borderColor: '#e5e7eb' },
+    });
+
+    const series = chart.addSeries(AreaSeries, {
+      lineColor: '#2563eb',
+      topColor: 'rgba(37, 99, 235, 0.3)',
+      bottomColor: 'rgba(37, 99, 235, 0.01)',
+      lineWidth: 2,
+    });
+
+    chartRef.current = chart;
+    seriesRef.current = series;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) chart.applyOptions({ width: entry.contentRect.width });
+    });
+    observer.observe(containerRef.current);
+
+    return () => { observer.disconnect(); chart.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (!seriesRef.current || chartData.length === 0) return;
+    seriesRef.current.setData(
+      chartData.map((p) => ({ time: p.time as import('lightweight-charts').UTCTimestamp, value: p.value })),
+    );
+    chartRef.current?.timeScale().fitContent();
+  }, [chartData]);
+
+  const ranges: HistoricalRange[] = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y'];
+
+  return (
+    <div>
+      <h3 className="font-semibold mb-3">Consolidated Value Over Time</h3>
+      <div className="flex gap-1 mb-3">
+        {ranges.map((r) => (
+          <button
+            key={r}
+            onClick={() => setRange(r)}
+            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+              range === r ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+      <div className="relative">
+        {!allLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+            <span className="text-sm text-gray-500">Loading chart data...</span>
+          </div>
+        )}
+        {chartData.length === 0 && allLoaded && (
+          <div className="flex items-center justify-center h-[350px] text-gray-400 text-sm">
+            Not enough historical data to display chart.
+          </div>
+        )}
+        <div ref={containerRef} />
+      </div>
+    </div>
+  );
+}
+
+// --- Sortable Portfolio Card ---
+
 function SortablePortfolioCard({
   portfolio,
   onSummary,
@@ -202,7 +574,6 @@ function SortablePortfolioCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Track whether a drag happened so we don't navigate on drop
   useEffect(() => {
     if (isDragging) didDrag.current = true;
   }, [isDragging]);
@@ -236,7 +607,6 @@ function SortablePortfolioCard({
 
   const totalGain = summary ? summary.totalUnrealizedGain : null;
   const totalGainPct = summary ? summary.totalUnrealizedGainPercent : null;
-
   const isDayPositive = summary ? summary.dayChange >= 0 : true;
 
   return (
