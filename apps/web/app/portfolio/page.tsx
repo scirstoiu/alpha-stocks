@@ -234,26 +234,38 @@ function SortablePortfolioCard({
     router.push(`/portfolio/${portfolio.id}`);
   }
 
+  const totalGain = summary ? summary.totalUnrealizedGain : null;
+  const totalGainPct = summary ? summary.totalUnrealizedGainPercent : null;
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card
-        className="hover:shadow-md transition-shadow p-4 cursor-grab active:cursor-grabbing bg-sky-50/70 border-sky-100"
+        className="hover:shadow-md transition-shadow px-4 py-3 cursor-grab active:cursor-grabbing bg-sky-50/70 border-sky-100"
         onClick={handleClick}
       >
-        <h3 className="font-semibold text-sm mb-0.5">{portfolio.name}</h3>
-        {portfolio.description && (
-          <p className="text-xs text-gray-400 mb-1">{portfolio.description}</p>
-        )}
         {summary ? (
-          <>
-            <p className="text-lg font-bold">{formatCurrency(summary.totalValue)}</p>
-            <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-              {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-sm">{portfolio.name}</h3>
+              <p className="text-base font-bold">{formatCurrency(summary.totalValue)}</p>
+            </div>
+            <div className="text-right">
+              <p className={`text-xs font-medium ${summary.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {summary.dayChange >= 0 ? '+' : ''}{formatCurrency(summary.dayChange)} ({formatPercent(summary.dayChangePercent)}) today
+              </p>
+              <p className={`text-xs ${totalGain! >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {totalGain! >= 0 ? '+' : ''}{formatCurrency(totalGain!)} ({formatPercent(totalGainPct!)}) total
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h3 className="font-semibold text-sm">{portfolio.name}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {transactions && transactions.length === 0 ? 'No transactions yet' : 'Loading...'}
             </p>
-          </>
-        ) : transactions && transactions.length === 0 ? (
-          <p className="text-xs text-gray-400 mt-1">No transactions yet</p>
-        ) : null}
+          </div>
+        )}
       </Card>
     </div>
   );

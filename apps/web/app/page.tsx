@@ -88,10 +88,9 @@ function MarketIndices() {
               const q = quoteMap.get(idx.symbol);
               const isPositive = (q?.change ?? 0) >= 0;
               return (
-                <Link
+                <div
                   key={idx.symbol}
-                  href={`/stocks/${encodeURIComponent(idx.symbol)}`}
-                  className="flex-shrink-0 w-44 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-white"
+                  className="flex-shrink-0 w-44 border border-gray-200 rounded-lg p-3 bg-white"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span
@@ -108,7 +107,7 @@ function MarketIndices() {
                   <div className={`text-xs ${isPositive ? 'text-gain' : 'text-loss'}`}>
                     {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
                   </div>
-                </Link>
+                </div>
               );
             })}
       </div>

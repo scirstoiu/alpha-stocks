@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@alpha-stocks/core';
+import StockSearch from '@/components/stocks/StockSearch';
 
 const navItems = [
   {
@@ -90,6 +91,9 @@ export default function Header() {
             </nav>
 
             <div className="hidden md:flex items-center gap-3">
+              <div className="w-56">
+                <StockSearch />
+              </div>
               <span className="text-sm text-gray-500">{user.email}</span>
               <button
                 onClick={signOut}
