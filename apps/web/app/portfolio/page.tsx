@@ -259,7 +259,7 @@ function SortablePortfolioCard({
                 <div className={`text-sm font-medium ${isDayPositive ? 'text-gain' : 'text-loss'}`}>
                   {formatPercent(summary.dayChangePercent)}
                 </div>
-                <div className={`text-xs font-medium mt-0.5 ${totalGain! >= 0 ? 'text-gain' : 'text-loss'}`}>
+                <div className={`text-sm font-medium mt-0.5 ${totalGain! >= 0 ? 'text-gain' : 'text-loss'}`}>
                   {totalGain! >= 0 ? '+' : ''}{formatCurrency(totalGain!)} ({formatPercent(totalGainPct!)})
                 </div>
               </div>
