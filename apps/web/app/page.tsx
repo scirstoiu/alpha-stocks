@@ -19,7 +19,7 @@ import {
 
 // --- Market Indices ---
 
-type MarketTab = 'us' | 'europe' | 'asia';
+type MarketTab = 'us' | 'europe' | 'asia' | 'currencies';
 
 const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
   us: [
@@ -43,6 +43,13 @@ const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
     { symbol: '^KS11', name: 'KOSPI' },
     { symbol: '^STI', name: 'Straits Times' },
   ],
+  currencies: [
+    { symbol: 'EURUSD=X', name: 'EUR / USD' },
+    { symbol: 'GBPUSD=X', name: 'GBP / USD' },
+    { symbol: 'EURRON=X', name: 'EUR / RON' },
+    { symbol: 'JPY=X', name: 'USD / JPY' },
+    { symbol: 'CAD=X', name: 'USD / CAD' },
+  ],
 };
 
 function MarketIndices() {
@@ -59,6 +66,7 @@ function MarketIndices() {
     { key: 'us', label: 'US' },
     { key: 'europe', label: 'Europe' },
     { key: 'asia', label: 'Asia' },
+    { key: 'currencies', label: 'Currencies' },
   ];
 
   return (
@@ -93,11 +101,11 @@ function MarketIndices() {
                 <Link
                   key={idx.symbol}
                   href={`/stocks/${encodeURIComponent(idx.symbol)}`}
-                  className="flex-shrink-0 w-48 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-white"
+                  className="flex-shrink-0 w-48 border border-gray-200 rounded-lg px-3 py-2.5 hover:shadow-md transition-shadow bg-white"
                 >
-                  {/* Row 1: arrow icon + name + pct */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md text-sm ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
+                  {/* Row 1: arrow + name + pct */}
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
                       {isPositive ? '↑' : '↓'}
                     </span>
                     <span className="font-semibold text-sm truncate flex-1">{idx.name}</span>
@@ -105,13 +113,14 @@ function MarketIndices() {
                       {q ? formatPercent(q.changePercent) : '—'}
                     </span>
                   </div>
-                  {/* Row 2: price */}
-                  <div className="text-base font-semibold">
-                    {q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                  </div>
-                  {/* Row 3: change */}
-                  <div className={`text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
-                    {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
+                  {/* Row 2: price + change aligned */}
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="text-sm font-semibold">
+                      {q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                    </span>
+                    <span className={`text-xs ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                      {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
+                    </span>
                   </div>
                 </Link>
               );
