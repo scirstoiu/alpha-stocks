@@ -101,26 +101,26 @@ function MarketIndices() {
                 <Link
                   key={idx.symbol}
                   href={`/stocks/${encodeURIComponent(idx.symbol)}`}
-                  className="flex-shrink-0 w-48 border border-gray-200 rounded-lg px-3 py-2.5 hover:shadow-md transition-shadow bg-white"
+                  className="flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2.5 hover:shadow-md transition-shadow bg-white flex items-center gap-3"
                 >
-                  {/* Row 1: arrow + name + pct */}
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
-                      {isPositive ? '↑' : '↓'}
-                    </span>
-                    <span className="font-semibold text-sm truncate flex-1">{idx.name}</span>
-                    <span className={`text-sm font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
-                      {q ? formatPercent(q.changePercent) : '—'}
-                    </span>
-                  </div>
-                  {/* Row 2: price + change aligned */}
-                  <div className="flex items-baseline justify-between mt-1">
-                    <span className="text-sm font-semibold">
-                      {q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                    </span>
-                    <span className={`text-xs ${isPositive ? 'text-gain' : 'text-loss'}`}>
-                      {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
-                    </span>
+                  <span className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-base flex-shrink-0 ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
+                    {isPositive ? '↑' : '↓'}
+                  </span>
+                  <div className="flex gap-4">
+                    <div>
+                      <div className="text-sm font-semibold">{idx.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-sm font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                        {q ? formatPercent(q.changePercent) : '—'}
+                      </div>
+                      <div className={`text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                        {q ? `${isPositive ? '+' : ''}${q.change.toFixed(2)}` : ''}
+                      </div>
+                    </div>
                   </div>
                 </Link>
               );
@@ -285,27 +285,23 @@ function MyNews() {
       </h3>
       <div className="divide-y divide-gray-100">
         {items.map((n) => (
-          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50">
-            {n.imageUrl ? (
+          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="flex gap-4 px-4 py-3 hover:bg-gray-50">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-medium text-gray-500">{n.source}</span>
+                <span className="text-xs text-gray-400">&middot;</span>
+                <span className="text-xs text-gray-400">{timeAgo(n.publishedAt)}</span>
+              </div>
+              <p className="text-sm font-medium line-clamp-2 leading-snug">{n.headline}</p>
+            </div>
+            {n.imageUrl && (
               <img
                 src={n.imageUrl}
                 alt=""
-                className="w-16 h-12 rounded object-cover flex-shrink-0 bg-gray-100"
+                className="w-24 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
-            ) : (
-              <div className="w-16 h-12 rounded bg-gray-100 flex-shrink-0" />
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium line-clamp-2">{n.headline}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-gray-400">{n.source}</span>
-                {n.relatedSymbols?.slice(0, 3).map((s) => (
-                  <span key={s} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-medium">{s}</span>
-                ))}
-                <span className="text-xs text-gray-400 ml-auto">{timeAgo(n.publishedAt)}</span>
-              </div>
-            </div>
           </a>
         ))}
       </div>

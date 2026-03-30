@@ -23,7 +23,7 @@ export default function WatchlistsScreen() {
     }
   }, [watchlists, redirected, router]);
 
-  if (isLoading) {
+  if (isLoading || (watchlists && watchlists.length === 1)) {
     return <View style={styles.container}><Text style={styles.hint}>Loading...</Text></View>;
   }
 

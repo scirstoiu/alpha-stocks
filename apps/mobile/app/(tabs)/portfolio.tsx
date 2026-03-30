@@ -180,10 +180,10 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: '#2563eb', paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center' },
   submitBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
-  card: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#2563eb', borderWidth: 1, borderColor: '#e5e7eb' },
+  card: { backgroundColor: '#f0f7ff', padding: 14, borderRadius: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#2563eb', borderWidth: 1, borderColor: '#dbeafe' },
   cardTitle: { fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 2 },
   cardValue: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  cardChange: { fontSize: 12, fontWeight: '500' },
-  cardTotalGain: { fontSize: 11, fontWeight: '400', marginTop: 2 },
+  cardChange: { fontSize: 13, fontWeight: '600' },
+  cardTotalGain: { fontSize: 12, fontWeight: '500', marginTop: 2 },
   cardHint: { fontSize: 12, color: '#9ca3af', marginTop: 6 },
 });
