@@ -40,6 +40,7 @@ export function computePositions(
         : undefined;
 
     const dayChange = quote ? quote.change * pos.shares : undefined;
+    const dayChangePercent = quote?.changePercent;
 
     positions.push({
       symbol,
@@ -51,6 +52,7 @@ export function computePositions(
       unrealizedGain,
       unrealizedGainPercent,
       dayChange,
+      dayChangePercent,
     });
   }
 

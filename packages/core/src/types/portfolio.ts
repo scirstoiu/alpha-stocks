@@ -23,6 +23,7 @@ export interface Position {
   unrealizedGain?: number;
   unrealizedGainPercent?: number;
   dayChange?: number;
+  dayChangePercent?: number;
 }
 
 export interface Portfolio {

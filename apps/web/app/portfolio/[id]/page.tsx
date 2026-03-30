@@ -170,6 +170,7 @@ export default function PortfolioDetailPage({
               <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Price</th>
               <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Value</th>
               <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Daily P&L</th>
+              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Daily P&L (%)</th>
               <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">P&L</th>
             </tr>
           </thead>
@@ -190,6 +191,9 @@ export default function PortfolioDetailPage({
                   <td className="px-4 py-2 text-right font-medium">{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</td>
                   <td className={`px-4 py-2 text-right ${(pos.dayChange ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
                     {pos.dayChange != null ? formatCurrency(pos.dayChange) : '—'}
+                  </td>
+                  <td className={`px-4 py-2 text-right ${(pos.dayChangePercent ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
+                    {pos.dayChangePercent != null ? formatPercent(pos.dayChangePercent) : '—'}
                   </td>
                   <td className={`px-4 py-2 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
                     {pos.unrealizedGain != null
