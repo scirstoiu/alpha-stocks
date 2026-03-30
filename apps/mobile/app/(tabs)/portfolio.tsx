@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   usePortfolios,
   useCreatePortfolio,
@@ -79,8 +80,16 @@ export default function PortfolioScreen() {
   const { data: portfolios, isLoading } = usePortfolios();
   const createPortfolio = useCreatePortfolio();
   const deletePortfolio = useDeletePortfolio();
+  const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
 
   const [summaries, setSummaries] = useState<Map<string, PortfolioSummary>>(new Map());
   const reportSummary = useCallback((id: string, s: PortfolioSummary) => {
@@ -155,6 +164,7 @@ export default function PortfolioScreen() {
       <FlatList
         data={portfolios}
         keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />}
         renderItem={({ item }) => (
           <PortfolioCard
             portfolio={item}

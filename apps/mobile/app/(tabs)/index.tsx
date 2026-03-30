@@ -112,20 +112,24 @@ export default function HomeScreen() {
             const pos = (q?.change ?? 0) >= 0;
             return (
               <View key={idx.symbol} style={styles.indexCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={[styles.arrowBox, { backgroundColor: pos ? '#f0fdf4' : '#fef2f2' }]}>
-                    <Text style={{ fontSize: 12, color: pos ? '#16a34a' : '#dc2626' }}>{pos ? '↑' : '↓'}</Text>
+                    <Text style={{ fontSize: 16, color: pos ? '#16a34a' : '#dc2626' }}>{pos ? '↑' : '↓'}</Text>
                   </View>
-                  <Text style={styles.indexName} numberOfLines={1}>{idx.name}</Text>
-                  <Text style={[styles.indexPct, { color: pos ? '#16a34a' : '#dc2626' }]}>
-                    {q ? formatPercent(q.changePercent) : '—'}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={styles.indexPrice}>{q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</Text>
-                  <Text style={[styles.indexChange, { color: pos ? '#16a34a' : '#dc2626' }]}>
-                    {q ? `${pos ? '+' : ''}${q.change.toFixed(2)}` : ''}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.indexName} numberOfLines={1}>{idx.name}</Text>
+                    <Text style={styles.indexPrice}>
+                      {q ? q.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.indexPct, { color: pos ? '#16a34a' : '#dc2626' }]}>
+                      {q ? formatPercent(q.changePercent) : '—'}
+                    </Text>
+                    <Text style={[styles.indexChange, { color: pos ? '#16a34a' : '#dc2626' }]}>
+                      {q ? `${pos ? '+' : ''}${q.change.toFixed(2)}` : ''}
+                    </Text>
+                  </View>
                 </View>
               </View>
             );
@@ -184,12 +188,12 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: 'rgba(37,99,235,0.1)' },
   tabText: { fontSize: 13, fontWeight: '500', color: '#6b7280' },
   tabTextActive: { color: '#2563eb' },
-  indexCard: { width: 160, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', padding: 10, marginRight: 8 },
-  arrowBox: { width: 28, height: 28, borderRadius: 6, alignItems: 'center' as const, justifyContent: 'center' as const },
-  indexName: { fontSize: 13, fontWeight: '600', flex: 1 },
-  indexPrice: { fontSize: 13, color: '#6b7280' },
-  indexPct: { fontSize: 12, fontWeight: '500' },
-  indexChange: { fontSize: 11 },
+  indexCard: { width: 200, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', padding: 12, marginRight: 10 },
+  arrowBox: { width: 34, height: 34, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const },
+  indexName: { fontSize: 14, fontWeight: '600' },
+  indexPrice: { fontSize: 14, color: '#6b7280', marginTop: 1 },
+  indexPct: { fontSize: 14, fontWeight: '500' },
+  indexChange: { fontSize: 13, marginTop: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
   symbol: { fontWeight: '600', fontSize: 14 },
   name: { fontSize: 11, color: '#6b7280', marginTop: 2, maxWidth: 180 },

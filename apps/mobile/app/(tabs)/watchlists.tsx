@@ -11,12 +11,16 @@ export default function WatchlistsScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
-  // Auto-navigate to the single watchlist
+  // Auto-navigate to the single watchlist (delayed to avoid navigation during render)
+  const [navigated, setNavigated] = useState(false);
   useEffect(() => {
-    if (watchlists && watchlists.length === 1) {
-      router.replace(`/watchlists/${watchlists[0].id}` as never);
+    if (watchlists && watchlists.length === 1 && !navigated) {
+      setNavigated(true);
+      setTimeout(() => {
+        router.push(`/watchlists/${watchlists[0].id}` as never);
+      }, 50);
     }
-  }, [watchlists, router]);
+  }, [watchlists, navigated, router]);
 
   if (isLoading) {
     return <View style={styles.container}><Text style={styles.hint}>Loading...</Text></View>;
