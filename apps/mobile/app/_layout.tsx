@@ -35,7 +35,7 @@ export default function RootLayout() {
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="stocks/[symbol]" options={{ title: 'Stock Details' }} />
-                <Stack.Screen name="watchlists/[id]" options={{ title: 'Watchlist' }} />
+
                 <Stack.Screen name="portfolio/[id]" options={{ title: 'Portfolio' }} />
               </Stack>
             </AuthGate>

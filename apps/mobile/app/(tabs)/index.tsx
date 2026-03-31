@@ -111,7 +111,7 @@ export default function HomeScreen() {
             const q = indexMap.get(idx.symbol);
             const pos = (q?.change ?? 0) >= 0;
             return (
-              <View key={idx.symbol} style={styles.indexCard}>
+              <TouchableOpacity key={idx.symbol} style={styles.indexCard} onPress={() => router.push(`/stocks/${idx.symbol}`)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={[styles.arrowBox, { backgroundColor: pos ? '#f0fdf4' : '#fef2f2' }]}>
                     <Text style={{ fontSize: 16, color: pos ? '#16a34a' : '#dc2626' }}>{pos ? '↑' : '↓'}</Text>
@@ -131,7 +131,7 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>

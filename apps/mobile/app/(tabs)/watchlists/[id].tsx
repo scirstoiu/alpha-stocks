@@ -11,7 +11,7 @@ import {
   formatCurrency,
   formatPercent,
 } from '@alpha-stocks/core';
-import StockLogo from '../../components/stocks/StockLogo';
+import StockLogo from '../../../components/stocks/StockLogo';
 
 export default function WatchlistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
