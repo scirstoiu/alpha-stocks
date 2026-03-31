@@ -103,6 +103,7 @@ export default function StockDetailScreen() {
   }
 
   const isPositive = quote.change >= 0;
+  const isIndex = quote.symbol.startsWith('^') || quote.symbol.includes('=');
 
   return (
     <ScrollView style={styles.container}>
@@ -110,8 +111,8 @@ export default function StockDetailScreen() {
         <View style={styles.headerRow}>
           <StockLogo symbol={quote.symbol} size={48} />
           <View>
-            <Text style={styles.symbol}>{quote.symbol}</Text>
-            <Text style={styles.name}>{quote.name}</Text>
+            <Text style={styles.symbol}>{isIndex ? quote.name : quote.symbol}</Text>
+            <Text style={styles.name}>{isIndex ? quote.symbol : quote.name}</Text>
           </View>
         </View>
       </View>

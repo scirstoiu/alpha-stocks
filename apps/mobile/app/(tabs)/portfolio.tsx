@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   totalCard: { backgroundColor: '#111827', padding: 20, borderRadius: 12, marginBottom: 16 },
   totalLabel: { fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   totalValue: { fontSize: 28, fontWeight: '800', color: '#fff' },
-  totalChange: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+  totalChange: { fontSize: 15, fontWeight: '600', marginTop: 4 },
   tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginBottom: 12 },
   tab: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: '#111827' },
