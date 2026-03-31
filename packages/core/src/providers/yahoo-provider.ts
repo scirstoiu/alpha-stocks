@@ -72,6 +72,12 @@ export function createYahooProvider(): IStockProvider {
         marketCap: result.marketCap,
         exchange: result.exchange,
         currency: result.currency,
+        preMarketPrice: (result as Record<string, unknown>).preMarketPrice as number | undefined,
+        preMarketChange: (result as Record<string, unknown>).preMarketChange as number | undefined,
+        preMarketChangePercent: (result as Record<string, unknown>).preMarketChangePercent as number | undefined,
+        postMarketPrice: (result as Record<string, unknown>).postMarketPrice as number | undefined,
+        postMarketChange: (result as Record<string, unknown>).postMarketChange as number | undefined,
+        postMarketChangePercent: (result as Record<string, unknown>).postMarketChangePercent as number | undefined,
         updatedAt: Date.now(),
       };
     },

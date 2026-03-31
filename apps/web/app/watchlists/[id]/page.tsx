@@ -47,7 +47,7 @@ function SortableRow({
   onRemove,
 }: {
   item: WatchlistItem;
-  quote?: { name: string; price: number; change: number; changePercent: number; volume: number };
+  quote?: { name: string; price: number; change: number; changePercent: number; volume: number; preMarketChangePercent?: number; postMarketChangePercent?: number };
   onRemove: () => void;
 }) {
   const {
@@ -94,6 +94,14 @@ function SortableRow({
           <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded transition-colors tracking-wide">{item.symbol}</span>
           <span className="text-sm text-gray-600">{quote?.name || ''}</span>
         </Link>
+      </td>
+      <td className="px-3 py-2 text-right text-sm">
+        {quote ? (() => {
+          const extPercent = quote.postMarketChangePercent ?? quote.preMarketChangePercent;
+          if (extPercent == null) return <span className="text-gray-300">—</span>;
+          const extPositive = extPercent >= 0;
+          return <span className={extPositive ? 'text-gain' : 'text-loss'}>{formatPercent(extPercent)}</span>;
+        })() : '—'}
       </td>
       <td className="px-3 py-2 text-right text-sm">
         {quote ? (
@@ -353,6 +361,7 @@ export default function WatchlistDetailPage({
                   <tr className="border-b border-gray-200">
                     <th className="w-6 pl-2 py-2"></th>
                     <th className="text-left px-3 py-2 font-medium text-gray-400 text-xs">Ticker</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Ext Hours (%)</th>
                     <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Last</th>
                     <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Chg%</th>
                     <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Chg</th>

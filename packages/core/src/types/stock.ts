@@ -12,6 +12,12 @@ export interface Quote {
   marketCap?: number;
   exchange?: string;
   currency?: string;
+  preMarketPrice?: number;
+  preMarketChange?: number;
+  preMarketChangePercent?: number;
+  postMarketPrice?: number;
+  postMarketChange?: number;
+  postMarketChangePercent?: number;
   updatedAt: number;
 }
 
