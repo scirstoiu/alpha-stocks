@@ -125,6 +125,23 @@ export default function StockDetailScreen() {
         </Text>
       </View>
 
+      {(quote.postMarketPrice ?? quote.preMarketPrice) != null && (() => {
+        const isPost = quote.postMarketPrice != null;
+        const extPrice = (isPost ? quote.postMarketPrice : quote.preMarketPrice)!;
+        const extChange = (isPost ? quote.postMarketChange : quote.preMarketChange) ?? 0;
+        const extPercent = (isPost ? quote.postMarketChangePercent : quote.preMarketChangePercent) ?? 0;
+        const extPositive = extChange >= 0;
+        return (
+          <View style={styles.extRow}>
+            <Text style={styles.extLabel}>{isPost ? 'After Hours' : 'Pre-Market'}</Text>
+            <Text style={styles.extPrice}>{formatCurrency(extPrice)}</Text>
+            <Text style={[styles.extChange, { color: extPositive ? '#16a34a' : '#dc2626' }]}>
+              {extPositive ? '+' : ''}{extChange.toFixed(2)} ({formatPercent(extPercent)})
+            </Text>
+          </View>
+        );
+      })()}
+
       {/* Chart */}
       <MiniChart symbol={upperSymbol} range={range} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rangeRow}>
@@ -173,9 +190,13 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   symbol: { fontSize: 24, fontWeight: 'bold' },
   name: { fontSize: 14, color: '#6b7280' },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, marginBottom: 16 },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, marginBottom: 4 },
   price: { fontSize: 32, fontWeight: '600' },
   change: { fontSize: 16, fontWeight: '500' },
+  extRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 16 },
+  extLabel: { fontSize: 12, color: '#9ca3af' },
+  extPrice: { fontSize: 14, fontWeight: '500' },
+  extChange: { fontSize: 12, fontWeight: '500' },
   rangeRow: { flexDirection: 'row', marginTop: 8, marginBottom: 16 },
   rangeBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6, backgroundColor: '#f3f4f6', marginRight: 6 },
   rangeBtnActive: { backgroundColor: '#2563eb' },
