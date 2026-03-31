@@ -41,13 +41,30 @@ export default function QuoteDisplay({ symbol }: { symbol: string }) {
         <h2 className="text-2xl font-bold">{quote.name || quote.symbol}</h2>
         <span className="text-sm text-gray-500">{quote.symbol}</span>
       </div>
-      <div className="flex items-baseline gap-3 mb-4">
+      <div className="flex items-baseline gap-3 mb-1">
         <span className="text-3xl font-semibold">{fmt(quote.price)}</span>
         <span className={`text-lg font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
           {isPositive ? '+' : ''}
           {quote.change.toFixed(decimals)} ({formatPercent(quote.changePercent)})
         </span>
       </div>
+      {(quote.postMarketPrice ?? quote.preMarketPrice) != null && (() => {
+        const isPost = quote.postMarketPrice != null;
+        const extPrice = (isPost ? quote.postMarketPrice : quote.preMarketPrice)!;
+        const extChange = (isPost ? quote.postMarketChange : quote.preMarketChange) ?? 0;
+        const extPercent = (isPost ? quote.postMarketChangePercent : quote.preMarketChangePercent) ?? 0;
+        const extPositive = extChange >= 0;
+        return (
+          <div className="flex items-baseline gap-2 mb-4 text-sm">
+            <span className="text-gray-400">{isPost ? 'After Hours' : 'Pre-Market'}</span>
+            <span className="font-medium">{fmt(extPrice)}</span>
+            <span className={extPositive ? 'text-gain' : 'text-loss'}>
+              {extPositive ? '+' : ''}{extChange.toFixed(decimals)} ({formatPercent(extPercent)})
+            </span>
+          </div>
+        );
+      })()}
+      {(quote.postMarketPrice ?? quote.preMarketPrice) == null && <div className="mb-3" />}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <div>
           <span className="text-gray-500">Open</span>
