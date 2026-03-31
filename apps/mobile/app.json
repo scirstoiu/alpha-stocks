@@ -21,7 +21,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Alpha Stocks uses Face ID to secure your account."
+        }
+      ]
     ],
     "extra": {
       "router": {},
