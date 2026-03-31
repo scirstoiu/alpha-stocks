@@ -122,7 +122,7 @@ export default function PortfoliosPage() {
       </div>
 
       {/* Total holdings */}
-      {summaries.size > 0 && (
+      {ordered.length > 0 && summaries.size >= ordered.length && (
         <div className="mb-4 bg-gradient-to-r from-gray-50 to-white rounded-xl px-6 py-4 border border-gray-100 flex items-baseline gap-4">
           <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Total Holdings</span>
           <span className="text-xl font-bold">{formatCurrency(totalValue.total)}</span>
@@ -596,6 +596,23 @@ function SortablePortfolioCard({
   useEffect(() => {
     if (summary) onSummary(portfolio.id, summary);
   }, [summary, portfolio.id, onSummary]);
+
+  // Report zero summary for empty portfolios so the parent knows they're loaded
+  useEffect(() => {
+    if (transactions && transactions.length === 0) {
+      onSummary(portfolio.id, {
+        totalValue: 0,
+        totalCostBasis: 0,
+        totalUnrealizedGain: 0,
+        totalUnrealizedGainPercent: 0,
+        totalRealizedGain: 0,
+        totalDividends: 0,
+        positions: [],
+        dayChange: 0,
+        dayChangePercent: 0,
+      });
+    }
+  }, [transactions, portfolio.id, onSummary]);
 
   function handleClick() {
     if (didDrag.current) {

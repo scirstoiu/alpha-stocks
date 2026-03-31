@@ -49,6 +49,23 @@ function PortfolioCard({ portfolio, onDelete, onSummary }: {
     if (summary) onSummary(portfolio.id, summary);
   }, [summary, portfolio.id, onSummary]);
 
+  // Report zero summary for empty portfolios so the parent knows they're loaded
+  useEffect(() => {
+    if (transactions && transactions.length === 0) {
+      onSummary(portfolio.id, {
+        totalValue: 0,
+        totalCostBasis: 0,
+        totalUnrealizedGain: 0,
+        totalUnrealizedGainPercent: 0,
+        totalRealizedGain: 0,
+        totalDividends: 0,
+        positions: [],
+        dayChange: 0,
+        dayChangePercent: 0,
+      });
+    }
+  }, [transactions, portfolio.id, onSummary]);
+
   const isNeg = summary && summary.dayChange < 0;
 
   return (
@@ -276,7 +293,7 @@ export default function PortfolioScreen() {
   return (
     <View style={styles.container}>
       {/* Total holdings */}
-      {summaries.size > 0 && (
+      {(portfolios?.length ?? 0) > 0 && summaries.size >= (portfolios?.length ?? 0) && (
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Holdings</Text>
           <Text style={styles.totalValue}>{formatCurrency(totals.value)}</Text>
