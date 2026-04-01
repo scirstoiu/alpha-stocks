@@ -29,6 +29,8 @@ export function createStockProvider(finnhubApiKey?: string): IStockProvider {
       withFallback(() => yahoo.getHistoricalPrices(symbol, range), finnhub ? () => finnhub.getHistoricalPrices(symbol, range) : null),
     getCompanyProfile: (symbol) =>
       withFallback(() => yahoo.getCompanyProfile(symbol), finnhub ? () => finnhub.getCompanyProfile(symbol) : null),
+    getFinancials: (symbol) =>
+      withFallback(() => yahoo.getFinancials(symbol), finnhub ? () => finnhub.getFinancials(symbol) : null),
   };
 }
 

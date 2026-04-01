@@ -108,7 +108,7 @@ export default function WatchlistDetailScreen() {
                 </Text>
                 {quote && (quote.postMarketChangePercent ?? quote.preMarketChangePercent) != null && (
                   <Text style={[styles.change, { color: (quote.postMarketChangePercent ?? quote.preMarketChangePercent ?? 0) >= 0 ? '#16a34a' : '#dc2626' }]}>
-                    {quote.postMarketPrice != null ? 'AH' : 'PM'} {formatPercent((quote.postMarketChangePercent ?? quote.preMarketChangePercent)!)}
+                    Ext {formatPercent((quote.postMarketChangePercent ?? quote.preMarketChangePercent)!)}
                   </Text>
                 )}
               </View>

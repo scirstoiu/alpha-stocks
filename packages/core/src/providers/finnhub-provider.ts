@@ -4,6 +4,7 @@
  */
 import type { IStockProvider, IMarketDataProvider } from '../types/provider';
 import type { Quote, SearchResult, OHLCV, CompanyProfile, HistoricalRange } from '../types/stock';
+import type { FinancialData } from '../types/financials';
 import type { NewsItem } from '../types/news';
 import type { EarningsEvent } from '../types/earnings';
 
@@ -112,6 +113,10 @@ export function createFinnhubStockProvider(apiKey: string): IStockProvider {
         exchange: p.exchange || '',
         country: p.country || '',
       };
+    },
+
+    async getFinancials(_symbol: string): Promise<FinancialData> {
+      throw new Error('Financials not available from Finnhub free tier');
     },
   };
 }

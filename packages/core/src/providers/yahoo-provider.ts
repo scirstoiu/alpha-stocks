@@ -4,6 +4,7 @@
  */
 import type { IStockProvider } from '../types/provider';
 import type { Quote, SearchResult, OHLCV, CompanyProfile, HistoricalRange } from '../types/stock';
+import type { FinancialData } from '../types/financials';
 
 let yfInstance: InstanceType<Awaited<ReturnType<typeof getYahooClass>>> | null = null;
 
@@ -140,6 +141,64 @@ export function createYahooProvider(): IStockProvider {
         employees: profile?.fullTimeEmployees,
         exchange: price?.exchange || '',
         country: profile?.country || '',
+      };
+    },
+
+    async getFinancials(symbol: string): Promise<FinancialData> {
+      const yf = await getYf();
+      const result = await yf.quoteSummary(symbol, {
+        modules: ['incomeStatementHistory', 'earnings', 'financialData'],
+      });
+
+      const income = result.incomeStatementHistory?.incomeStatementHistory || [];
+      const annualFinancials = income.map((stmt) => ({
+        date: stmt.endDate ? new Date(stmt.endDate as unknown as string | number).toISOString().split('T')[0] : '',
+        revenue: (stmt as unknown as Record<string, number>).totalRevenue ?? 0,
+        grossProfit: (stmt as unknown as Record<string, number>).grossProfit ?? 0,
+        operatingIncome: (stmt as unknown as Record<string, number>).operatingIncome ?? 0,
+        netIncome: (stmt as unknown as Record<string, number>).netIncome ?? 0,
+      })).reverse();
+
+      const earningsData = result.earnings;
+      const quarterlyEarnings = (earningsData?.earningsChart?.quarterly || []).map(
+        (q) => ({
+          date: (q as unknown as Record<string, string>).date || '',
+          quarter: (q as unknown as Record<string, string>).date || '',
+          epsActual: typeof q.actual === 'number' ? q.actual : (q.actual as unknown as Record<string, number>)?.raw ?? null,
+          epsEstimate: typeof q.estimate === 'number' ? q.estimate : (q.estimate as unknown as Record<string, number>)?.raw ?? null,
+        }),
+      );
+
+      const fd = result.financialData || {};
+      const raw = (key: string) => {
+        const val = (fd as unknown as Record<string, unknown>)[key];
+        if (val == null) return undefined;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'object' && val !== null && 'raw' in (val as Record<string, unknown>)) {
+          return (val as Record<string, unknown>).raw as number;
+        }
+        return undefined;
+      };
+
+      return {
+        annualFinancials,
+        quarterlyEarnings,
+        metrics: {
+          revenueGrowth: raw('revenueGrowth'),
+          earningsGrowth: raw('earningsGrowth'),
+          grossMargins: raw('grossMargins'),
+          operatingMargins: raw('operatingMargins'),
+          profitMargins: raw('profitMargins'),
+          returnOnEquity: raw('returnOnEquity'),
+          returnOnAssets: raw('returnOnAssets'),
+          debtToEquity: raw('debtToEquity'),
+          currentRatio: raw('currentRatio'),
+          totalCash: raw('totalCash'),
+          totalDebt: raw('totalDebt'),
+          freeCashflow: raw('freeCashflow'),
+          ebitda: raw('ebitda'),
+          revenuePerShare: raw('revenuePerShare'),
+        },
       };
     },
   };

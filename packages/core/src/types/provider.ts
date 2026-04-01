@@ -1,6 +1,7 @@
 import type { Quote, SearchResult, OHLCV, CompanyProfile, HistoricalRange } from './stock';
 import type { EarningsEvent } from './earnings';
 import type { NewsItem } from './news';
+import type { FinancialData } from './financials';
 
 export interface IStockProvider {
   getQuote(symbol: string): Promise<Quote>;
@@ -8,6 +9,7 @@ export interface IStockProvider {
   searchSymbols(query: string): Promise<SearchResult[]>;
   getHistoricalPrices(symbol: string, range: HistoricalRange): Promise<OHLCV[]>;
   getCompanyProfile(symbol: string): Promise<CompanyProfile>;
+  getFinancials(symbol: string): Promise<FinancialData>;
 }
 
 export interface IMarketDataProvider {

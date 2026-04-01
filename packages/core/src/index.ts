@@ -4,6 +4,7 @@ export type { Portfolio, Position, Transaction, PortfolioSummary, TransactionTyp
 export type { Watchlist, WatchlistItem } from './types/watchlist';
 export type { EarningsEvent } from './types/earnings';
 export type { NewsItem } from './types/news';
+export type { FinancialData, AnnualFinancial, QuarterlyEarning, FinancialMetrics } from './types/financials';
 export type { IStockProvider, IMarketDataProvider } from './types/provider';
 
 // API client
@@ -22,9 +23,10 @@ export { useStockSearch } from './hooks/use-stock-search';
 export { useStockLogo } from './hooks/use-stock-logo';
 export { useHistoricalPrices } from './hooks/use-historical-prices';
 
-// Earnings & News hooks
+// Earnings, News & Financials hooks
 export { useEarningsCalendar } from './hooks/use-earnings-calendar';
 export { useNews } from './hooks/use-news';
+export { useFinancials } from './hooks/use-financials';
 
 // Watchlist hooks
 export { useWatchlists, useWatchlist, useCreateWatchlist, useDeleteWatchlist, useAddWatchlistItem, useRemoveWatchlistItem, useReorderWatchlistItems } from './hooks/use-watchlists';

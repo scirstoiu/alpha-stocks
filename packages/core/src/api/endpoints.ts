@@ -30,3 +30,7 @@ export function earningsUrl(baseUrl: string, from: string, to: string): string {
 export function logoUrl(baseUrl: string, symbol: string): string {
   return `${baseUrl}/api/stocks/logo?symbol=${encodeURIComponent(symbol)}`;
 }
+
+export function financialsUrl(baseUrl: string, symbol: string): string {
+  return `${baseUrl}/api/stocks/financials?symbol=${encodeURIComponent(symbol)}`;
+}
