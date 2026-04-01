@@ -164,14 +164,14 @@ export default function PortfolioDetailPage({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left px-4 py-2 font-medium text-gray-400 text-xs">Symbol</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Shares</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Avg Cost</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Price</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Value</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Daily P&L</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Daily P&L (%)</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">P&L</th>
+              <th className="text-left px-4 py-1 font-medium text-gray-400 text-xs">Symbol</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Shares</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Avg Cost</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Price</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Value</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Daily P&L</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Daily P&L (%)</th>
+              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">P&L</th>
             </tr>
           </thead>
           <tbody>
@@ -179,23 +179,23 @@ export default function PortfolioDetailPage({
               const isPositive = (pos.unrealizedGain ?? 0) >= 0;
               return (
                 <tr key={pos.symbol} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-2">
-                    <Link href={`/stocks/${pos.symbol}`} className="inline-flex items-center gap-3 group">
-                      <StockLogo symbol={pos.symbol} size={32} />
+                  <td className="px-4 py-1">
+                    <Link href={`/stocks/${pos.symbol}`} className="inline-flex items-center gap-2 group">
+                      <StockLogo symbol={pos.symbol} size={24} />
                       <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded transition-colors tracking-wide">{pos.symbol}</span>
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-right">{pos.shares.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">{formatCurrency(pos.averageCost)}</td>
-                  <td className="px-4 py-2 text-right">{pos.currentPrice ? formatCurrency(pos.currentPrice) : '—'}</td>
-                  <td className="px-4 py-2 text-right font-medium">{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</td>
-                  <td className={`px-4 py-2 text-right ${(pos.dayChange ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
+                  <td className="px-4 py-1 text-right">{pos.shares.toFixed(2)}</td>
+                  <td className="px-4 py-1 text-right">{formatCurrency(pos.averageCost)}</td>
+                  <td className="px-4 py-1 text-right">{pos.currentPrice ? formatCurrency(pos.currentPrice) : '—'}</td>
+                  <td className="px-4 py-1 text-right font-medium">{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</td>
+                  <td className={`px-4 py-1 text-right ${(pos.dayChange ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
                     {pos.dayChange != null ? formatCurrency(pos.dayChange) : '—'}
                   </td>
-                  <td className={`px-4 py-2 text-right ${(pos.dayChangePercent ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
+                  <td className={`px-4 py-1 text-right ${(pos.dayChangePercent ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
                     {pos.dayChangePercent != null ? formatPercent(pos.dayChangePercent) : '—'}
                   </td>
-                  <td className={`px-4 py-2 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                  <td className={`px-4 py-1 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
                     {pos.unrealizedGain != null
                       ? `${formatCurrency(pos.unrealizedGain)} (${formatPercent(pos.unrealizedGainPercent!)})`
                       : '—'}
@@ -217,20 +217,20 @@ export default function PortfolioDetailPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left px-4 py-2 font-medium text-gray-400 text-xs">Date</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-400 text-xs">Type</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-400 text-xs">Symbol</th>
-                  <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Shares</th>
-                  <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Price</th>
-                  <th className="text-right px-4 py-2 font-medium text-gray-400 text-xs">Total</th>
-                  <th className="px-4 py-2"></th>
+                  <th className="text-left px-4 py-1 font-medium text-gray-400 text-xs">Date</th>
+                  <th className="text-left px-4 py-1 font-medium text-gray-400 text-xs">Type</th>
+                  <th className="text-left px-4 py-1 font-medium text-gray-400 text-xs">Symbol</th>
+                  <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Shares</th>
+                  <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Price</th>
+                  <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Total</th>
+                  <th className="px-4 py-1"></th>
                 </tr>
               </thead>
               <tbody>
                 {[...transactions].reverse().map((tx) => (
                   <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-2">{formatDate(tx.date)}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-1">{formatDate(tx.date)}</td>
+                    <td className="px-4 py-1">
                       <span
                         className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                           tx.type === 'buy'
@@ -243,16 +243,16 @@ export default function PortfolioDetailPage({
                         {tx.type.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-1">
                       <Link href={`/stocks/${tx.symbol}`} className="inline-flex items-center gap-2 group">
                         <StockLogo symbol={tx.symbol} size={24} />
                         <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-1.5 py-0.5 rounded transition-colors tracking-wide">{tx.symbol}</span>
                       </Link>
                     </td>
-                    <td className="px-4 py-2 text-right">{tx.shares}</td>
-                    <td className="px-4 py-2 text-right">{formatCurrency(tx.price_per_share)}</td>
-                    <td className="px-4 py-2 text-right">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-1 text-right">{tx.shares}</td>
+                    <td className="px-4 py-1 text-right">{formatCurrency(tx.price_per_share)}</td>
+                    <td className="px-4 py-1 text-right">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
+                    <td className="px-4 py-1 text-right">
                       <button
                         onClick={() => deleteTransaction.mutate({ id: tx.id, portfolioId: id })}
                         className="text-red-400 hover:text-red-600 text-xs"
