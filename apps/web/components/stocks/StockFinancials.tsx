@@ -4,12 +4,14 @@ import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
 
+const BAR_MAX_HEIGHT = 200;
+
 function RevenueNetIncomeChart({ data }: {
   data: { date: string; revenue: number; netIncome: number }[];
 }) {
   if (data.length === 0) return null;
 
-  const maxVal = Math.max(...data.map((d) => Math.max(d.revenue, d.netIncome)));
+  const maxVal = Math.max(...data.map((d) => Math.max(d.revenue, Math.abs(d.netIncome))));
 
   return (
     <div>
@@ -23,33 +25,33 @@ function RevenueNetIncomeChart({ data }: {
           Net Income
         </div>
       </div>
-      <div className="flex items-end gap-6 h-52">
+      <div className="flex items-end gap-6" style={{ height: BAR_MAX_HEIGHT + 40 }}>
         {data.map((d, i) => {
-          const revPct = maxVal > 0 ? (d.revenue / maxVal) * 100 : 0;
-          const niPct = maxVal > 0 ? (Math.abs(d.netIncome) / maxVal) * 100 : 0;
+          const revH = maxVal > 0 ? (d.revenue / maxVal) * BAR_MAX_HEIGHT : 0;
+          const niH = maxVal > 0 ? (Math.abs(d.netIncome) / maxVal) * BAR_MAX_HEIGHT : 0;
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div className="flex items-end gap-1.5 flex-1 w-full justify-center">
-                <div className="flex flex-col items-center gap-1 flex-1">
+            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+              <div className="flex items-end gap-2 w-full justify-center">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[11px] font-medium text-gray-600">
                     {formatCompactNumber(d.revenue)}
                   </span>
                   <div
-                    className="w-full max-w-[36px] bg-blue-600 rounded-t"
-                    style={{ height: `${revPct}%`, minHeight: 4 }}
+                    className="w-9 bg-blue-600 rounded-t"
+                    style={{ height: Math.max(revH, 4) }}
                   />
                 </div>
-                <div className="flex flex-col items-center gap-1 flex-1">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[11px] font-medium text-gray-600">
                     {formatCompactNumber(d.netIncome)}
                   </span>
                   <div
-                    className="w-full max-w-[36px] bg-amber-500 rounded-t"
-                    style={{ height: `${niPct}%`, minHeight: 4 }}
+                    className="w-9 bg-amber-500 rounded-t"
+                    style={{ height: Math.max(niH, 4) }}
                   />
                 </div>
               </div>
-              <span className="text-xs text-gray-400 mt-1">{d.date.slice(0, 4)}</span>
+              <span className="text-xs text-gray-400 mt-2">{d.date.slice(0, 4)}</span>
             </div>
           );
         })}

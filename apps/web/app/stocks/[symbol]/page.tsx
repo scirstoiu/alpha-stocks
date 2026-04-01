@@ -25,7 +25,9 @@ export default function StockDetailPage({
 
   return (
     <div>
-      <div className="flex gap-0 border-b border-gray-200 mb-4">
+      <QuoteDisplay symbol={upperSymbol} />
+
+      <div className="flex gap-0 border-b border-gray-200 mt-6 mb-4">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -42,11 +44,8 @@ export default function StockDetailPage({
       </div>
 
       {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <QuoteDisplay symbol={upperSymbol} />
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <StockChart symbol={upperSymbol} />
-          </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+          <StockChart symbol={upperSymbol} />
         </div>
       )}
 
