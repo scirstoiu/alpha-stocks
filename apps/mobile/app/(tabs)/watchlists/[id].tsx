@@ -137,6 +137,6 @@ const styles = StyleSheet.create({
   name: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   priceCol: { alignItems: 'flex-end' },
   price: { fontWeight: '600', fontSize: 15 },
-  change: { fontSize: 12, marginTop: 2 },
+  change: { fontSize: 14, marginTop: 2 },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
 });
