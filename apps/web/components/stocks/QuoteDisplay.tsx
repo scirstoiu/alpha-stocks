@@ -4,7 +4,7 @@ import { useStockQuote, formatCurrency, formatPercent, formatCompactNumber } fro
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 
-export default function QuoteDisplay({ symbol }: { symbol: string }) {
+export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol: string; compact?: boolean; detailsOnly?: boolean }) {
   const { data: quote, isLoading, error } = useStockQuote(symbol);
 
   if (isLoading) {
@@ -37,62 +37,68 @@ export default function QuoteDisplay({ symbol }: { symbol: string }) {
 
   return (
     <Card>
-      <div className="flex items-baseline justify-between mb-1">
-        <h2 className="text-2xl font-bold">{quote.name || quote.symbol}</h2>
-        <span className="text-sm text-gray-500">{quote.symbol}</span>
-      </div>
-      <div className="flex items-baseline gap-3 mb-1">
-        <span className="text-3xl font-semibold">{fmt(quote.price)}</span>
-        <span className={`text-lg font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
-          {isPositive ? '+' : ''}
-          {quote.change.toFixed(decimals)} ({formatPercent(quote.changePercent)})
-        </span>
-      </div>
-      {(quote.postMarketPrice ?? quote.preMarketPrice) != null && (() => {
-        const isPost = quote.postMarketPrice != null;
-        const extPrice = (isPost ? quote.postMarketPrice : quote.preMarketPrice)!;
-        const extChange = (isPost ? quote.postMarketChange : quote.preMarketChange) ?? 0;
-        const extPercent = (isPost ? quote.postMarketChangePercent : quote.preMarketChangePercent) ?? 0;
-        const extPositive = extChange >= 0;
-        return (
-          <div className="flex items-baseline gap-2 mb-4 text-sm">
-            <span className="text-gray-400">{isPost ? 'After Hours' : 'Pre-Market'}</span>
-            <span className="font-medium">{fmt(extPrice)}</span>
-            <span className={extPositive ? 'text-gain' : 'text-loss'}>
-              {extPositive ? '+' : ''}{extChange.toFixed(decimals)} ({formatPercent(extPercent)})
+      {!detailsOnly && (
+        <>
+          <div className="flex items-baseline justify-between mb-1">
+            <h2 className="text-2xl font-bold">{quote.name || quote.symbol}</h2>
+            <span className="text-sm text-gray-500">{quote.symbol}</span>
+          </div>
+          <div className="flex items-baseline gap-3 mb-1">
+            <span className="text-3xl font-semibold">{fmt(quote.price)}</span>
+            <span className={`text-lg font-medium ${isPositive ? 'text-gain' : 'text-loss'}`}>
+              {isPositive ? '+' : ''}
+              {quote.change.toFixed(decimals)} ({formatPercent(quote.changePercent)})
             </span>
           </div>
-        );
-      })()}
-      {(quote.postMarketPrice ?? quote.preMarketPrice) == null && <div className="mb-3" />}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-        <div>
-          <span className="text-gray-500">Open</span>
-          <p className="font-medium">{fmt(quote.open)}</p>
-        </div>
-        <div>
-          <span className="text-gray-500">High</span>
-          <p className="font-medium">{fmt(quote.high)}</p>
-        </div>
-        <div>
-          <span className="text-gray-500">Low</span>
-          <p className="font-medium">{fmt(quote.low)}</p>
-        </div>
-        <div>
-          <span className="text-gray-500">Volume</span>
-          <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
-        </div>
-        <div>
-          <span className="text-gray-500">Prev Close</span>
-          <p className="font-medium">{fmt(quote.previousClose)}</p>
-        </div>
-        {quote.marketCap && (
+          {(quote.postMarketPrice ?? quote.preMarketPrice) != null && (() => {
+            const isPost = quote.postMarketPrice != null;
+            const extPrice = (isPost ? quote.postMarketPrice : quote.preMarketPrice)!;
+            const extChange = (isPost ? quote.postMarketChange : quote.preMarketChange) ?? 0;
+            const extPercent = (isPost ? quote.postMarketChangePercent : quote.preMarketChangePercent) ?? 0;
+            const extPositive = extChange >= 0;
+            return (
+              <div className="flex items-baseline gap-2 mb-4 text-sm">
+                <span className="text-gray-400">{isPost ? 'After Hours' : 'Pre-Market'}</span>
+                <span className="font-medium">{fmt(extPrice)}</span>
+                <span className={extPositive ? 'text-gain' : 'text-loss'}>
+                  {extPositive ? '+' : ''}{extChange.toFixed(decimals)} ({formatPercent(extPercent)})
+                </span>
+              </div>
+            );
+          })()}
+        </>
+      )}
+      {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
+      {!compact && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div>
-            <span className="text-gray-500">Market Cap</span>
-            <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
+            <span className="text-gray-500">Open</span>
+            <p className="font-medium">{fmt(quote.open)}</p>
           </div>
-        )}
-      </div>
+          <div>
+            <span className="text-gray-500">High</span>
+            <p className="font-medium">{fmt(quote.high)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Low</span>
+            <p className="font-medium">{fmt(quote.low)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Volume</span>
+            <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Prev Close</span>
+            <p className="font-medium">{fmt(quote.previousClose)}</p>
+          </div>
+          {quote.marketCap && (
+            <div>
+              <span className="text-gray-500">Market Cap</span>
+              <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
