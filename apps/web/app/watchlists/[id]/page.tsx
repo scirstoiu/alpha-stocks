@@ -69,7 +69,7 @@ function SortableRow({
 
   return (
     <tr ref={setNodeRef} style={style} className="border-b border-gray-100 hover:bg-gray-50/50">
-      <td className="pl-2 pr-0 py-2 w-6">
+      <td className="pl-2 pr-0 py-1 w-6">
         <button
           className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 touch-none"
           {...attributes}
@@ -85,17 +85,17 @@ function SortableRow({
           </svg>
         </button>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-1">
         <Link
           href={`/stocks/${item.symbol}`}
-          className="inline-flex items-center gap-3 group"
+          className="inline-flex items-center gap-2 group"
         >
-          <StockLogo symbol={item.symbol} size={32} />
+          <StockLogo symbol={item.symbol} size={24} />
           <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded transition-colors tracking-wide">{item.symbol}</span>
           <span className="text-sm text-gray-600">{quote?.name || ''}</span>
         </Link>
       </td>
-      <td className="px-3 py-2 text-right text-sm">
+      <td className="px-3 py-1 text-right text-sm">
         {quote ? (() => {
           const extPercent = quote.postMarketChangePercent ?? quote.preMarketChangePercent;
           if (extPercent == null) return <span className="text-gray-300">—</span>;
@@ -103,23 +103,23 @@ function SortableRow({
           return <span className={extPositive ? 'text-gain' : 'text-loss'}>{formatPercent(extPercent)}</span>;
         })() : '—'}
       </td>
-      <td className="px-3 py-2 text-right text-sm">
+      <td className="px-3 py-1 text-right text-sm">
         {quote ? (
           <span>{quote.price.toFixed(2)} <span className="text-[10px] text-gray-400">USD</span></span>
         ) : '—'}
       </td>
-      <td className={`px-3 py-2 text-right text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
+      <td className={`px-3 py-1 text-right text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
         {quote ? formatPercent(quote.changePercent) : '—'}
       </td>
-      <td className={`px-3 py-2 text-right text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
+      <td className={`px-3 py-1 text-right text-sm ${isPositive ? 'text-gain' : 'text-loss'}`}>
         {quote ? (
           <span>{(isPositive ? '+' : '') + quote.change.toFixed(2)} <span className="text-[10px]">USD</span></span>
         ) : '—'}
       </td>
-      <td className="px-3 py-2 text-right text-sm text-gray-500">
+      <td className="px-3 py-1 text-right text-sm text-gray-500">
         {quote?.volume ? formatCompactNumber(quote.volume) : '—'}
       </td>
-      <td className="px-3 py-2 text-right">
+      <td className="px-3 py-1 text-right">
         <button onClick={onRemove} className="text-gray-400 hover:text-red-500 text-xs">
           &times;
         </button>
@@ -359,14 +359,14 @@ export default function WatchlistDetailPage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="w-6 pl-2 py-2"></th>
-                    <th className="text-left px-3 py-2 font-medium text-gray-400 text-xs">Ticker</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Ext Hours (%)</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Last</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Chg%</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Chg</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-400 text-xs">Volume</th>
-                    <th className="w-8 px-3 py-2"></th>
+                    <th className="w-6 pl-2 py-1"></th>
+                    <th className="text-left px-3 py-1 font-medium text-gray-400 text-xs">Ticker</th>
+                    <th className="text-right px-3 py-1 font-medium text-gray-400 text-xs">Ext Hours (%)</th>
+                    <th className="text-right px-3 py-1 font-medium text-gray-400 text-xs">Last</th>
+                    <th className="text-right px-3 py-1 font-medium text-gray-400 text-xs">Chg%</th>
+                    <th className="text-right px-3 py-1 font-medium text-gray-400 text-xs">Chg</th>
+                    <th className="text-right px-3 py-1 font-medium text-gray-400 text-xs">Volume</th>
+                    <th className="w-8 px-3 py-1"></th>
                   </tr>
                 </thead>
                 <SortableContext items={orderedItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
