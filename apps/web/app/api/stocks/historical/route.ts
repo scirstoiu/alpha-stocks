@@ -4,7 +4,7 @@ import type { HistoricalRange } from '@alpha-stocks/core';
 
 const provider = createStockProvider(process.env.FINNHUB_API_KEY);
 
-const VALID_RANGES = new Set(['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y']);
+const VALID_RANGES = new Set(['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', 'ALL']);
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

@@ -23,6 +23,7 @@ function rangeToUnix(range: HistoricalRange): { from: number; to: number; resolu
     '1Y': { days: 365, resolution: 'D' },
     '2Y': { days: 730, resolution: 'W' },
     '5Y': { days: 1825, resolution: 'W' },
+    ALL: { days: 20000, resolution: 'M' },
   };
   const config = resolutions[range];
   return { from: now - config.days * day, to: now, resolution: config.resolution };

@@ -33,6 +33,7 @@ function rangeToParams(range: HistoricalRange): { period1: Date; interval: strin
     '1Y': { months: 12, interval: '1d' },
     '2Y': { months: 24, interval: '1wk' },
     '5Y': { months: 60, interval: '1wk' },
+    ALL: { months: 0, interval: '1mo' },
   };
 
   const config = intervals[range];
@@ -46,6 +47,8 @@ function rangeToParams(range: HistoricalRange): { period1: Date; interval: strin
     period1.setDate(period1.getDate() - 5);
   } else if (range === 'YTD') {
     period1 = new Date(now.getFullYear(), 0, 1);
+  } else if (range === 'ALL') {
+    period1 = new Date(1970, 0, 1);
   } else {
     period1 = new Date(now);
     period1.setMonth(period1.getMonth() - config.months);

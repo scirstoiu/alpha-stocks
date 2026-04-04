@@ -1,10 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, AreaSeries, type IChartApi, type ISeriesApi, ColorType } from 'lightweight-charts';
-import { useHistoricalPrices, type HistoricalRange } from '@alpha-stocks/core';
+import { useHistoricalPrices, formatPercent, type HistoricalRange } from '@alpha-stocks/core';
 
-const RANGES: HistoricalRange[] = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y'];
+const RANGES: HistoricalRange[] = ['1D', '5D', '1M', '6M', 'YTD', '1Y', '5Y', 'ALL'];
+
+const RANGE_LABELS: Record<string, string> = {
+  '1D': '1 day',
+  '5D': '5 days',
+  '1M': '1 month',
+  '6M': '6 months',
+  YTD: 'Year to date',
+  '1Y': '1 year',
+  '5Y': '5 years',
+  ALL: 'All time',
+};
 
 // Detect if symbol is a currency pair or low-price instrument needing more decimals
 function getPrecision(sym: string, prices?: { close: number }[]): number {
@@ -14,12 +25,40 @@ function getPrecision(sym: string, prices?: { close: number }[]): number {
   return 2;
 }
 
+function isCurrency(symbol: string): boolean {
+  return symbol.includes('=X') || symbol.includes('=x');
+}
+
 export default function StockChart({ symbol }: { symbol: string }) {
-  const [range, setRange] = useState<HistoricalRange>('1Y');
-  const { data: prices, isLoading } = useHistoricalPrices(symbol, range);
+  const [range, setRange] = useState<HistoricalRange>(() => isCurrency(symbol) ? '6M' : '1Y');
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+
+  // Fetch data for the selected range (chart)
+  const { data: prices, isLoading } = useHistoricalPrices(symbol, range);
+
+  // Fetch data for all ranges to compute change %
+  const rangeQueries = RANGES.map((r) => ({
+    range: r,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    query: useHistoricalPrices(symbol, r),
+  }));
+
+  const rangeChanges = useMemo(() => {
+    const changes: Record<string, number | null> = {};
+    for (const rq of rangeQueries) {
+      const data = rq.query.data;
+      if (!data || data.length < 2) {
+        changes[rq.range] = null;
+        continue;
+      }
+      const first = data[0].close;
+      const last = data[data.length - 1].close;
+      changes[rq.range] = first > 0 ? ((last - first) / first) * 100 : null;
+    }
+    return changes;
+  }, [rangeQueries]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -106,6 +145,33 @@ export default function StockChart({ symbol }: { symbol: string }) {
           </div>
         )}
         <div ref={containerRef} />
+      </div>
+      {/* Period change % row */}
+      <div className="flex gap-0 mt-3 border border-gray-200 rounded-lg overflow-hidden divide-x divide-gray-200">
+        {RANGES.map((r) => {
+          const change = rangeChanges[r];
+          const isActive = range === r;
+          return (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`flex-1 py-2 px-1 text-center transition-colors ${
+                isActive ? 'bg-gray-50' : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="text-xs text-gray-500 font-medium">{RANGE_LABELS[r]}</div>
+              <div className={`text-xs font-semibold mt-0.5 ${
+                change == null
+                  ? 'text-gray-400'
+                  : change >= 0
+                    ? 'text-gain'
+                    : 'text-loss'
+              }`}>
+                {change != null ? formatPercent(change) : '—'}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
