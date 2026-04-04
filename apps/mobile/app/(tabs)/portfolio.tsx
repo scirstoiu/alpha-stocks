@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   statsValue: { fontSize: 14, fontWeight: '500' },
   statsWeight: { fontSize: 12, color: '#9ca3af', width: 42, textAlign: 'right' },
   statsSubRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingLeft: 28, borderBottomWidth: 1, borderBottomColor: '#f9fafb', backgroundColor: '#f9fafb' },
-  statsSubName: { flex: 1, fontSize: 12, color: '#6b7280' },
-  statsSubValue: { fontSize: 12, fontWeight: '500' },
-  statsSubWeight: { fontSize: 11, color: '#9ca3af', width: 42, textAlign: 'right' },
+  statsSubName: { flex: 1, fontSize: 13, color: '#6b7280' },
+  statsSubValue: { fontSize: 13, fontWeight: '500' },
+  statsSubWeight: { fontSize: 12, color: '#9ca3af', width: 42, textAlign: 'right' },
 });
