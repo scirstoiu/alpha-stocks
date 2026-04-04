@@ -47,6 +47,18 @@ export default function PortfolioDetailPage({
   const [activeTab, setActiveTab] = useState<Tab>('positions');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const symbols = useMemo(() => {
     if (!transactions) return [];
@@ -85,17 +97,36 @@ export default function PortfolioDetailPage({
     <div>
       <div className="flex items-center gap-4 mb-6">
         <Link href="/portfolio" className="text-gray-400 hover:text-gray-600">&larr;</Link>
-        <div>
-          <select
-            value={id}
-            onChange={(e) => router.push(`/portfolio/${e.target.value}`)}
-            className="text-2xl font-bold bg-transparent border-none outline-none cursor-pointer appearance-none pr-6"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right center' }}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-2 text-2xl font-bold hover:text-gray-700 transition-colors"
           >
-            {portfolios?.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            {portfolio.name}
+            {portfolios && portfolios.length > 1 && (
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            )}
+          </button>
+          {dropdownOpen && portfolios && portfolios.length > 1 && (
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] py-1">
+              {portfolios.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    if (p.id !== id) router.push(`/portfolio/${p.id}`);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                    p.id === id ? 'font-semibold text-primary bg-primary/5' : 'text-gray-700'
+                  }`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
           {portfolio.description && (
             <p className="text-sm text-gray-500">{portfolio.description}</p>
           )}

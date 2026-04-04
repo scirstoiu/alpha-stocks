@@ -228,13 +228,14 @@ function PortfolioStats({ summaries, portfolios }: {
 }) {
   // Aggregate all positions across all portfolios
   const allPositions = useMemo(() => {
-    const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number }>();
+    const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number; pnl: number }>();
     for (const s of summaries.values()) {
       for (const pos of s.positions) {
-        const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0 };
+        const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0, pnl: 0 };
         existing.value += pos.currentValue || 0;
         existing.shares += pos.shares;
         existing.costBasis += pos.costBasis;
+        existing.pnl += pos.unrealizedGain ?? 0;
         merged.set(pos.symbol, existing);
       }
     }
@@ -281,6 +282,7 @@ function PortfolioStats({ summaries, portfolios }: {
                   <th className="text-left py-1.5 font-medium text-gray-400 text-xs">Symbol</th>
                   <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Value</th>
                   <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Weight</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400 text-xs">P&L</th>
                   <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Shares</th>
                 </tr>
               </thead>
@@ -293,7 +295,8 @@ function PortfolioStats({ summaries, portfolios }: {
                     </td>
                     <td className="py-1.5 text-right">{formatCurrency(pos.value)}</td>
                     <td className="py-1.5 text-right">{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</td>
-                    <td className="py-1.5 text-right text-gray-500">{pos.shares.toFixed(2)}</td>
+                    <td className={`py-1.5 text-right ${pos.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>{formatCurrency(pos.pnl)}</td>
+                    <td className="py-1.5 text-right text-gray-500">{Math.round(pos.shares)}</td>
                   </tr>
                 ))}
               </tbody>

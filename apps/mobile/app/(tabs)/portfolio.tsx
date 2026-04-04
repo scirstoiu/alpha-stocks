@@ -147,13 +147,14 @@ function PortfolioStats({ summaries, portfolios }: {
   portfolios: Portfolio[];
 }) {
   const allPositions = useMemo(() => {
-    const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number }>();
+    const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number; pnl: number }>();
     for (const s of summaries.values()) {
       for (const pos of s.positions) {
-        const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0 };
+        const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0, pnl: 0 };
         existing.value += pos.currentValue || 0;
         existing.shares += pos.shares;
         existing.costBasis += pos.costBasis;
+        existing.pnl += pos.unrealizedGain ?? 0;
         merged.set(pos.symbol, existing);
       }
     }
@@ -190,16 +191,23 @@ function PortfolioStats({ summaries, portfolios }: {
           size={160}
         />
       </View>
+      <View style={styles.statsHeaderRow}>
+        <Text style={[styles.statsHeaderText, { flex: 1, textAlign: 'left' }]}>Symbol</Text>
+        <Text style={[styles.statsHeaderText, { width: 80, textAlign: 'right' }]}>Value</Text>
+        <Text style={[styles.statsHeaderText, { width: 48, textAlign: 'right' }]}>Weight</Text>
+        <Text style={[styles.statsHeaderText, { width: 80, textAlign: 'right' }]}>P&L</Text>
+        <Text style={[styles.statsHeaderText, { width: 48, textAlign: 'right' }]}>Shares</Text>
+      </View>
       {allPositions.map((pos, i) => (
         <View key={pos.symbol} style={styles.statsRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={[styles.colorDot, { backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }]} />
             <Text style={styles.statsSymbol}>{pos.symbol}</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Text style={styles.statsValue}>{formatCurrency(pos.value)}</Text>
-            <Text style={styles.statsWeight}>{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</Text>
-          </View>
+          <Text style={[styles.statsValue, { width: 80, textAlign: 'right' }]}>{formatCurrency(pos.value)}</Text>
+          <Text style={[styles.statsWeight, { width: 48, textAlign: 'right' }]}>{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</Text>
+          <Text style={[styles.statsValue, { width: 80, textAlign: 'right', color: pos.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(pos.pnl)}</Text>
+          <Text style={[styles.statsWeight, { width: 48, textAlign: 'right' }]}>{Math.round(pos.shares)}</Text>
         </View>
       ))}
 
@@ -392,7 +400,9 @@ const styles = StyleSheet.create({
   // Stats styles
   statsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
   pieRow: { alignItems: 'center', marginBottom: 16 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  statsHeaderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  statsHeaderText: { fontSize: 11, fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statsRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   colorDot: { width: 12, height: 12, borderRadius: 6 },
   statsSymbol: { fontSize: 14, fontWeight: '600' },
   statsValue: { fontSize: 14, fontWeight: '500' },
