@@ -318,19 +318,16 @@ function PortfolioStats({ summaries, portfolios }: {
               <tbody>
                 {allPositions.map((pos, i) => {
                   const isExpanded = expanded.has(pos.symbol);
-                  const breakdown = perPortfolio.get(pos.symbol) || [];
-                  const hasBreakdown = breakdown.length > 1;
+                  const breakdown = (perPortfolio.get(pos.symbol) || []).slice().sort((a, b) => b.value - a.value);
                   return (
                     <>
                       <tr
                         key={pos.symbol}
-                        className={`border-b border-gray-100 ${hasBreakdown ? 'cursor-pointer hover:bg-gray-50' : ''}`}
-                        onClick={() => hasBreakdown && toggleExpand(pos.symbol)}
+                        className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
+                        onClick={() => toggleExpand(pos.symbol)}
                       >
                         <td className="py-1.5 flex items-center gap-2">
-                          {hasBreakdown && (
-                            <span className={`text-gray-400 text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
-                          )}
+                          <span className={`text-gray-400 text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
                           <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                           <span className="font-medium">{pos.symbol}</span>
                         </td>
@@ -341,7 +338,7 @@ function PortfolioStats({ summaries, portfolios }: {
                       </tr>
                       {isExpanded && breakdown.map((b) => (
                         <tr key={`${pos.symbol}-${b.portfolioId}`} className="border-b border-gray-50 bg-gray-50/50">
-                          <td className="py-1 pl-10 text-xs text-gray-500">{b.portfolioName}</td>
+                          <td className="py-1 pl-10 text-[13px] text-gray-500">{b.portfolioName}</td>
                           <td className="py-1 text-right text-xs text-gray-500">{formatCurrency(b.value)}</td>
                           <td className="py-1 text-right text-xs text-gray-400">{pos.value > 0 ? ((b.value / pos.value) * 100).toFixed(1) : 0}%</td>
                           <td className={`py-1 text-right text-xs ${b.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>{formatCurrency(b.pnl)}</td>

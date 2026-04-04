@@ -146,20 +146,42 @@ function PortfolioStats({ summaries, portfolios }: {
   summaries: Map<string, PortfolioSummary>;
   portfolios: Portfolio[];
 }) {
-  const allPositions = useMemo(() => {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpand = useCallback((symbol: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
+      return next;
+    });
+  }, []);
+
+  const { allPositions, perPortfolio } = useMemo(() => {
     const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number; pnl: number }>();
-    for (const s of summaries.values()) {
-      for (const pos of s.positions) {
+    const breakdown = new Map<string, { portfolioId: string; portfolioName: string; value: number; shares: number; pnl: number }[]>();
+    const portfolioNameMap = new Map(portfolios.map((p) => [p.id, p.name]));
+
+    for (const [portfolioId, summary] of summaries.entries()) {
+      const portfolioName = portfolioNameMap.get(portfolioId) || portfolioId;
+      for (const pos of summary.positions) {
         const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0, pnl: 0 };
         existing.value += pos.currentValue || 0;
         existing.shares += pos.shares;
         existing.costBasis += pos.costBasis;
         existing.pnl += pos.unrealizedGain ?? 0;
         merged.set(pos.symbol, existing);
+
+        const entries = breakdown.get(pos.symbol) || [];
+        entries.push({ portfolioId, portfolioName, value: pos.currentValue || 0, shares: pos.shares, pnl: pos.unrealizedGain ?? 0 });
+        breakdown.set(pos.symbol, entries);
       }
     }
-    return [...merged.values()].sort((a, b) => b.value - a.value);
-  }, [summaries]);
+    return {
+      allPositions: [...merged.values()].sort((a, b) => b.value - a.value),
+      perPortfolio: breakdown,
+    };
+  }, [summaries, portfolios]);
 
   const totalValue = allPositions.reduce((s, p) => s + p.value, 0);
 
@@ -196,20 +218,33 @@ function PortfolioStats({ summaries, portfolios }: {
         <Text style={[styles.statsHeaderText, { width: 80, textAlign: 'right' }]}>Value</Text>
         <Text style={[styles.statsHeaderText, { width: 48, textAlign: 'right' }]}>Weight</Text>
         <Text style={[styles.statsHeaderText, { width: 80, textAlign: 'right' }]}>P&L</Text>
-        <Text style={[styles.statsHeaderText, { width: 48, textAlign: 'right' }]}>Shares</Text>
       </View>
-      {allPositions.map((pos, i) => (
-        <View key={pos.symbol} style={styles.statsRow}>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={[styles.colorDot, { backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }]} />
-            <Text style={styles.statsSymbol}>{pos.symbol}</Text>
+      {allPositions.map((pos, i) => {
+        const isExp = expanded.has(pos.symbol);
+        const breakdown = (perPortfolio.get(pos.symbol) || []).slice().sort((a, b) => b.value - a.value);
+        return (
+          <View key={pos.symbol}>
+            <TouchableOpacity onPress={() => toggleExpand(pos.symbol)} style={styles.statsRow}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 10, color: '#9ca3af', transform: [{ rotate: isExp ? '90deg' : '0deg' }] }}>&#9654;</Text>
+                <View style={[styles.colorDot, { backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }]} />
+                <Text style={styles.statsSymbol}>{pos.symbol}</Text>
+              </View>
+              <Text style={[styles.statsValue, { width: 80, textAlign: 'right' }]}>{formatCurrency(pos.value)}</Text>
+              <Text style={[styles.statsWeight, { width: 48, textAlign: 'right' }]}>{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</Text>
+              <Text style={[styles.statsValue, { width: 80, textAlign: 'right', color: pos.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(pos.pnl)}</Text>
+            </TouchableOpacity>
+            {isExp && breakdown.map((b) => (
+              <View key={`${pos.symbol}-${b.portfolioId}`} style={styles.statsSubRow}>
+                <Text style={styles.statsSubName}>{b.portfolioName}</Text>
+                <Text style={[styles.statsSubValue, { width: 80, textAlign: 'right' }]}>{formatCurrency(b.value)}</Text>
+                <Text style={[styles.statsSubWeight, { width: 48, textAlign: 'right' }]}>{pos.value > 0 ? ((b.value / pos.value) * 100).toFixed(1) : 0}%</Text>
+                <Text style={[styles.statsSubValue, { width: 80, textAlign: 'right', color: b.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(b.pnl)}</Text>
+              </View>
+            ))}
           </View>
-          <Text style={[styles.statsValue, { width: 80, textAlign: 'right' }]}>{formatCurrency(pos.value)}</Text>
-          <Text style={[styles.statsWeight, { width: 48, textAlign: 'right' }]}>{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</Text>
-          <Text style={[styles.statsValue, { width: 80, textAlign: 'right', color: pos.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(pos.pnl)}</Text>
-          <Text style={[styles.statsWeight, { width: 48, textAlign: 'right' }]}>{Math.round(pos.shares)}</Text>
-        </View>
-      ))}
+        );
+      })}
 
       {/* Portfolio Allocation */}
       {portfolioAllocation.length > 1 && (
@@ -407,4 +442,8 @@ const styles = StyleSheet.create({
   statsSymbol: { fontSize: 14, fontWeight: '600' },
   statsValue: { fontSize: 14, fontWeight: '500' },
   statsWeight: { fontSize: 12, color: '#9ca3af', width: 42, textAlign: 'right' },
+  statsSubRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingLeft: 28, borderBottomWidth: 1, borderBottomColor: '#f9fafb', backgroundColor: '#f9fafb' },
+  statsSubName: { flex: 1, fontSize: 12, color: '#6b7280' },
+  statsSubValue: { fontSize: 12, fontWeight: '500' },
+  statsSubWeight: { fontSize: 11, color: '#9ca3af', width: 42, textAlign: 'right' },
 });
