@@ -7,7 +7,7 @@ import {
   usePortfolios,
   useCreatePortfolio,
   useDeletePortfolio,
-  useTransactions,
+  useAllTransactions,
   useStockQuotes,
   computePortfolioSummary,
   formatCurrency,
@@ -259,23 +259,20 @@ export default function PortfolioScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
-  // Fetch all transactions in parallel (one hook per portfolio)
-  const txQueries = (portfolios || []).map((p) => ({
-    id: p.id,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    query: useTransactions(p.id),
-  }));
+  // Fetch all transactions in parallel via useQueries (stable hook count)
+  const portfolioIds = useMemo(() => (portfolios || []).map((p) => p.id), [portfolios]);
+  const txResults = useAllTransactions(portfolioIds);
 
   // Collect all unique symbols across all portfolios
   const allSymbols = useMemo(() => {
     const symbols = new Set<string>();
-    for (const tq of txQueries) {
-      if (tq.query.data) {
-        for (const t of tq.query.data) symbols.add(t.symbol);
+    for (const result of txResults) {
+      if (result.data) {
+        for (const t of result.data) symbols.add(t.symbol);
       }
     }
     return [...symbols];
-  }, [txQueries]);
+  }, [txResults]);
 
   // Single batch quote fetch for all symbols
   const { data: allQuotes } = useStockQuotes(allSymbols);
@@ -285,21 +282,21 @@ export default function PortfolioScreen() {
     const map = new Map<string, PortfolioSummary>();
     if (!allQuotes) return map;
     const quoteMap = new Map(allQuotes.map((q) => [q.symbol, q]));
-    for (const tq of txQueries) {
-      const transactions = tq.query.data;
+    for (let i = 0; i < portfolioIds.length; i++) {
+      const transactions = txResults[i]?.data;
       if (!transactions) continue;
       if (transactions.length === 0) {
-        map.set(tq.id, {
+        map.set(portfolioIds[i], {
           totalValue: 0, totalCostBasis: 0, totalUnrealizedGain: 0,
           totalUnrealizedGainPercent: 0, totalRealizedGain: 0, totalDividends: 0,
           positions: [], dayChange: 0, dayChangePercent: 0,
         });
       } else {
-        map.set(tq.id, computePortfolioSummary(transactions, quoteMap));
+        map.set(portfolioIds[i], computePortfolioSummary(transactions, quoteMap));
       }
     }
     return map;
-  }, [allQuotes, txQueries]);
+  }, [allQuotes, txResults, portfolioIds]);
 
   const totals = useMemo(() => {
     let value = 0, dayChange = 0;

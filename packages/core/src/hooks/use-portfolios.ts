@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from './use-supabase';
 import * as queries from '../supabase/queries/portfolios';
 import type { TransactionType } from '../types/portfolio';
@@ -26,6 +26,17 @@ export function useTransactions(portfolioId: string) {
     queryKey: ['transactions', portfolioId],
     queryFn: () => queries.getTransactions(supabase, portfolioId),
     enabled: !!portfolioId,
+  });
+}
+
+export function useAllTransactions(portfolioIds: string[]) {
+  const supabase = useSupabase();
+  return useQueries({
+    queries: portfolioIds.map((id) => ({
+      queryKey: ['transactions', id],
+      queryFn: () => queries.getTransactions(supabase, id),
+      enabled: !!id,
+    })),
   });
 }
 

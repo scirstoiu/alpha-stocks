@@ -6,9 +6,9 @@ import {
   usePortfolios,
   useCreatePortfolio,
   useReorderPortfolios,
-  useTransactions,
+  useAllTransactions,
   useStockQuotes,
-  useHistoricalPrices,
+  useAllHistoricalPrices,
   computePortfolioSummary,
   computePositions,
   formatCurrency,
@@ -55,23 +55,20 @@ export default function PortfoliosPage() {
     if (portfolios) setOrdered(portfolios);
   }, [portfolios]);
 
-  // Fetch all transactions in parallel (one hook per portfolio)
-  const txQueries = (portfolios || []).map((p) => ({
-    id: p.id,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    query: useTransactions(p.id),
-  }));
+  // Fetch all transactions in parallel via useQueries (stable hook count)
+  const portfolioIds = useMemo(() => (portfolios || []).map((p) => p.id), [portfolios]);
+  const txResults = useAllTransactions(portfolioIds);
 
   // Collect all unique symbols across all portfolios
   const allSymbols = useMemo(() => {
     const symbols = new Set<string>();
-    for (const tq of txQueries) {
-      if (tq.query.data) {
-        for (const t of tq.query.data) symbols.add(t.symbol);
+    for (const result of txResults) {
+      if (result.data) {
+        for (const t of result.data) symbols.add(t.symbol);
       }
     }
     return [...symbols];
-  }, [txQueries]);
+  }, [txResults]);
 
   // Single batch quote fetch for all symbols
   const { data: allQuotes } = useStockQuotes(allSymbols);
@@ -81,21 +78,21 @@ export default function PortfoliosPage() {
     const map = new Map<string, PortfolioSummary>();
     if (!allQuotes) return map;
     const quoteMap = new Map(allQuotes.map((q) => [q.symbol, q]));
-    for (const tq of txQueries) {
-      const transactions = tq.query.data;
+    for (let i = 0; i < portfolioIds.length; i++) {
+      const transactions = txResults[i]?.data;
       if (!transactions) continue;
       if (transactions.length === 0) {
-        map.set(tq.id, {
+        map.set(portfolioIds[i], {
           totalValue: 0, totalCostBasis: 0, totalUnrealizedGain: 0,
           totalUnrealizedGainPercent: 0, totalRealizedGain: 0, totalDividends: 0,
           positions: [], dayChange: 0, dayChangePercent: 0,
         });
       } else {
-        map.set(tq.id, computePortfolioSummary(transactions, quoteMap));
+        map.set(portfolioIds[i], computePortfolioSummary(transactions, quoteMap));
       }
     }
     return map;
-  }, [allQuotes, txQueries]);
+  }, [allQuotes, txResults, portfolioIds]);
 
   const totalValue = useMemo(() => {
     let total = 0;
@@ -513,42 +510,36 @@ function ConsolidatedChart({ summaries, portfolios }: {
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
 
   // Fetch all transactions for all portfolios
-  const txQueries = portfolios.map((p) => ({
-    id: p.id,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    query: useTransactions(p.id),
-  }));
+  const portfolioIds = useMemo(() => portfolios.map((p) => p.id), [portfolios]);
+  const txResults = useAllTransactions(portfolioIds);
 
   const allTransactions = useMemo(() => {
     const txs: Transaction[] = [];
-    for (const tq of txQueries) {
-      if (tq.query.data) txs.push(...tq.query.data);
+    for (const result of txResults) {
+      if (result.data) txs.push(...result.data);
     }
     return txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [txQueries]);
+  }, [txResults]);
 
   // Fetch historical prices for each symbol
-  const priceQueries = allSymbols.map((s) => ({
-    symbol: s,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    query: useHistoricalPrices(s, range),
-  }));
+  const priceResults = useAllHistoricalPrices(allSymbols, range);
 
-  const allLoaded = priceQueries.every((q) => !q.query.isLoading) && txQueries.every((q) => !q.query.isLoading);
+  const allLoaded = priceResults.every((q) => !q.isLoading) && txResults.every((q) => !q.isLoading);
 
   const chartData = useMemo(() => {
     if (!allLoaded || allTransactions.length === 0) return [];
 
     const priceMaps = new Map<string, Map<number, number>>();
-    for (const pq of priceQueries) {
-      if (!pq.query.data) continue;
+    for (let i = 0; i < allSymbols.length; i++) {
+      const data = priceResults[i]?.data;
+      if (!data) continue;
       const map = new Map<number, number>();
-      for (const p of pq.query.data) {
+      for (const p of data) {
         const day = new Date(p.timestamp);
         day.setHours(0, 0, 0, 0);
         map.set(day.getTime(), p.close);
       }
-      priceMaps.set(pq.symbol, map);
+      priceMaps.set(allSymbols[i], map);
     }
 
     const allTimestamps = new Set<number>();
@@ -588,7 +579,7 @@ function ConsolidatedChart({ summaries, portfolios }: {
     }
 
     return points;
-  }, [allLoaded, allTransactions, priceQueries]);
+  }, [allLoaded, allTransactions, priceResults, allSymbols]);
 
   useEffect(() => {
     if (!containerRef.current) return;

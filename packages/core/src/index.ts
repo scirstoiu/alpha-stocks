@@ -21,7 +21,7 @@ export { AuthContext, useAuth, type AuthContext as AuthContextType } from './hoo
 export { useStockQuote, useStockQuotes } from './hooks/use-stock-quote';
 export { useStockSearch } from './hooks/use-stock-search';
 export { useStockLogo } from './hooks/use-stock-logo';
-export { useHistoricalPrices } from './hooks/use-historical-prices';
+export { useHistoricalPrices, useAllHistoricalPrices } from './hooks/use-historical-prices';
 
 // Earnings, News & Financials hooks
 export { useEarningsCalendar } from './hooks/use-earnings-calendar';
@@ -32,7 +32,7 @@ export { useFinancials } from './hooks/use-financials';
 export { useWatchlists, useWatchlist, useCreateWatchlist, useDeleteWatchlist, useAddWatchlistItem, useRemoveWatchlistItem, useReorderWatchlistItems } from './hooks/use-watchlists';
 
 // Portfolio hooks
-export { usePortfolios, usePortfolio, useTransactions, useCreatePortfolio, useRenamePortfolio, useDeletePortfolio, useAddTransaction, useDeleteTransaction, useReorderPortfolios, useBulkAddTransactions } from './hooks/use-portfolios';
+export { usePortfolios, usePortfolio, useTransactions, useAllTransactions, useCreatePortfolio, useRenamePortfolio, useDeletePortfolio, useAddTransaction, useDeleteTransaction, useReorderPortfolios, useBulkAddTransactions } from './hooks/use-portfolios';
 
 // Calculations
 export { computePositions, computePortfolioSummary, computeRealizedGains, computeTotalDividends } from './calculations/portfolio-metrics';
