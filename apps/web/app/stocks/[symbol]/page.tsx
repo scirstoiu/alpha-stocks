@@ -14,6 +14,10 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'news', label: 'News' },
 ];
 
+function isCurrency(symbol: string): boolean {
+  return symbol.includes('=X') || symbol.includes('=x');
+}
+
 export default function StockDetailPage({
   params,
 }: {
@@ -22,6 +26,17 @@ export default function StockDetailPage({
   const { symbol } = use(params);
   const upperSymbol = decodeURIComponent(symbol).toUpperCase();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+
+  if (isCurrency(upperSymbol)) {
+    return (
+      <div>
+        <QuoteDisplay symbol={upperSymbol} />
+        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm mt-4">
+          <StockChart symbol={upperSymbol} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
