@@ -226,21 +226,50 @@ function PortfolioStats({ summaries, portfolios }: {
   summaries: Map<string, PortfolioSummary>;
   portfolios: Portfolio[];
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpand = useCallback((symbol: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
+      return next;
+    });
+  }, []);
+
   // Aggregate all positions across all portfolios
-  const allPositions = useMemo(() => {
+  const { allPositions, perPortfolio } = useMemo(() => {
     const merged = new Map<string, { symbol: string; value: number; shares: number; costBasis: number; pnl: number }>();
-    for (const s of summaries.values()) {
-      for (const pos of s.positions) {
+    const breakdown = new Map<string, { portfolioId: string; portfolioName: string; value: number; shares: number; pnl: number }[]>();
+
+    const portfolioNameMap = new Map(portfolios.map((p) => [p.id, p.name]));
+
+    for (const [portfolioId, summary] of summaries.entries()) {
+      const portfolioName = portfolioNameMap.get(portfolioId) || portfolioId;
+      for (const pos of summary.positions) {
         const existing = merged.get(pos.symbol) || { symbol: pos.symbol, value: 0, shares: 0, costBasis: 0, pnl: 0 };
         existing.value += pos.currentValue || 0;
         existing.shares += pos.shares;
         existing.costBasis += pos.costBasis;
         existing.pnl += pos.unrealizedGain ?? 0;
         merged.set(pos.symbol, existing);
+
+        const entries = breakdown.get(pos.symbol) || [];
+        entries.push({
+          portfolioId,
+          portfolioName,
+          value: pos.currentValue || 0,
+          shares: pos.shares,
+          pnl: pos.unrealizedGain ?? 0,
+        });
+        breakdown.set(pos.symbol, entries);
       }
     }
-    return [...merged.values()].sort((a, b) => b.value - a.value);
-  }, [summaries]);
+    return {
+      allPositions: [...merged.values()].sort((a, b) => b.value - a.value),
+      perPortfolio: breakdown,
+    };
+  }, [summaries, portfolios]);
 
   const totalValue = allPositions.reduce((s, p) => s + p.value, 0);
 
@@ -287,18 +316,41 @@ function PortfolioStats({ summaries, portfolios }: {
                 </tr>
               </thead>
               <tbody>
-                {allPositions.map((pos, i) => (
-                  <tr key={pos.symbol} className="border-b border-gray-100">
-                    <td className="py-1.5 flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      <span className="font-medium">{pos.symbol}</span>
-                    </td>
-                    <td className="py-1.5 text-right">{formatCurrency(pos.value)}</td>
-                    <td className="py-1.5 text-right">{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</td>
-                    <td className={`py-1.5 text-right ${pos.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>{formatCurrency(pos.pnl)}</td>
-                    <td className="py-1.5 text-right text-gray-500">{Math.round(pos.shares)}</td>
-                  </tr>
-                ))}
+                {allPositions.map((pos, i) => {
+                  const isExpanded = expanded.has(pos.symbol);
+                  const breakdown = perPortfolio.get(pos.symbol) || [];
+                  const hasBreakdown = breakdown.length > 1;
+                  return (
+                    <>
+                      <tr
+                        key={pos.symbol}
+                        className={`border-b border-gray-100 ${hasBreakdown ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                        onClick={() => hasBreakdown && toggleExpand(pos.symbol)}
+                      >
+                        <td className="py-1.5 flex items-center gap-2">
+                          {hasBreakdown && (
+                            <span className={`text-gray-400 text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
+                          )}
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="font-medium">{pos.symbol}</span>
+                        </td>
+                        <td className="py-1.5 text-right">{formatCurrency(pos.value)}</td>
+                        <td className="py-1.5 text-right">{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</td>
+                        <td className={`py-1.5 text-right ${pos.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>{formatCurrency(pos.pnl)}</td>
+                        <td className="py-1.5 text-right text-gray-500">{Math.round(pos.shares)}</td>
+                      </tr>
+                      {isExpanded && breakdown.map((b) => (
+                        <tr key={`${pos.symbol}-${b.portfolioId}`} className="border-b border-gray-50 bg-gray-50/50">
+                          <td className="py-1 pl-10 text-xs text-gray-500">{b.portfolioName}</td>
+                          <td className="py-1 text-right text-xs text-gray-500">{formatCurrency(b.value)}</td>
+                          <td className="py-1 text-right text-xs text-gray-400">{pos.value > 0 ? ((b.value / pos.value) * 100).toFixed(1) : 0}%</td>
+                          <td className={`py-1 text-right text-xs ${b.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>{formatCurrency(b.pnl)}</td>
+                          <td className="py-1 text-right text-xs text-gray-400">{Math.round(b.shares)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  );
+                })}
               </tbody>
             </table>
           </div>
