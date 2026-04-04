@@ -177,10 +177,10 @@ function PortfolioStats({ summaries, portfolios }: {
         />
       </View>
       <View style={styles.statsHeaderRow}>
-        <Text style={[styles.statsHeaderText, { flex: 1, textAlign: 'left' }]}>Symbol</Text>
-        <Text style={[styles.statsHeaderText, { width: 80, textAlign: 'right', marginRight: 8 }]}>Value</Text>
-        <Text style={[styles.statsHeaderText, { width: 48, textAlign: 'right' }]}>Weight</Text>
-        <Text style={[styles.statsHeaderText, { width: 80, textAlign: 'right' }]}>P&L</Text>
+        <Text style={[styles.statsHeaderText, { flex: 1.2, textAlign: 'left' }]}>Symbol</Text>
+        <Text style={[styles.statsHeaderText, { flex: 1, textAlign: 'right' }]}>Value</Text>
+        <Text style={[styles.statsHeaderText, { flex: 0.7, textAlign: 'right' }]}>Weight</Text>
+        <Text style={[styles.statsHeaderText, { flex: 1, textAlign: 'right' }]}>P&L</Text>
       </View>
       {allPositions.map((pos, i) => {
         const isExp = expanded.has(pos.symbol);
@@ -188,21 +188,21 @@ function PortfolioStats({ summaries, portfolios }: {
         return (
           <View key={pos.symbol}>
             <TouchableOpacity onPress={() => toggleExpand(pos.symbol)} style={styles.statsRow}>
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flex: 1.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={{ fontSize: 10, color: '#9ca3af', transform: [{ rotate: isExp ? '90deg' : '0deg' }] }}>&#9654;</Text>
                 <View style={[styles.colorDot, { backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }]} />
                 <Text style={styles.statsSymbol}>{pos.symbol}</Text>
               </View>
-              <Text style={[styles.statsValue, { width: 80, textAlign: 'right', marginRight: 8 }]}>{formatCurrency(pos.value)}</Text>
-              <Text style={[styles.statsWeight, { width: 48, textAlign: 'right' }]}>{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</Text>
-              <Text style={[styles.statsValue, { width: 80, textAlign: 'right', color: pos.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(pos.pnl)}</Text>
+              <Text style={[styles.statsValue, { flex: 1, textAlign: 'right' }]}>{formatCurrency(pos.value)}</Text>
+              <Text style={[styles.statsWeight, { flex: 0.7, textAlign: 'right' }]}>{totalValue > 0 ? ((pos.value / totalValue) * 100).toFixed(1) : 0}%</Text>
+              <Text style={[styles.statsValue, { flex: 1, textAlign: 'right', color: pos.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(pos.pnl)}</Text>
             </TouchableOpacity>
             {isExp && breakdown.map((b) => (
               <View key={`${pos.symbol}-${b.portfolioId}`} style={styles.statsSubRow}>
-                <Text style={styles.statsSubName}>{b.portfolioName}</Text>
-                <Text style={[styles.statsSubValue, { width: 80, textAlign: 'right', marginRight: 8 }]}>{formatCurrency(b.value)}</Text>
-                <Text style={[styles.statsSubWeight, { width: 48, textAlign: 'right' }]}>{pos.value > 0 ? ((b.value / pos.value) * 100).toFixed(1) : 0}%</Text>
-                <Text style={[styles.statsSubValue, { width: 80, textAlign: 'right', color: b.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(b.pnl)}</Text>
+                <Text style={[styles.statsSubName, { flex: 1.2 }]}>{b.portfolioName}</Text>
+                <Text style={[styles.statsSubValue, { flex: 1, textAlign: 'right' }]}>{formatCurrency(b.value)}</Text>
+                <Text style={[styles.statsSubWeight, { flex: 0.7, textAlign: 'right' }]}>{pos.value > 0 ? ((b.value / pos.value) * 100).toFixed(1) : 0}%</Text>
+                <Text style={[styles.statsSubValue, { flex: 1, textAlign: 'right', color: b.pnl >= 0 ? '#16a34a' : '#dc2626' }]}>{formatCurrency(b.pnl)}</Text>
               </View>
             ))}
           </View>
