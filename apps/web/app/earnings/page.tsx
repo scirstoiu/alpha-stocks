@@ -73,7 +73,7 @@ export default function EarningsPage() {
               <tr key={`${e.symbol}-${e.date}-${i}`} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-2">{formatDate(e.date)}</td>
                 <td className="px-4 py-2">
-                  <Link href={`/stocks/${e.symbol}`} className="font-medium text-primary hover:underline">
+                  <Link href={`/stocks/${e.symbol}`} target="_blank" className="font-medium text-primary hover:underline">
                     {e.symbol}
                   </Link>
                 </td>

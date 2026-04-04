@@ -88,6 +88,7 @@ function SortableRow({
       <td className="px-3 py-1">
         <Link
           href={`/stocks/${item.symbol}`}
+          target="_blank"
           className="inline-flex items-center gap-2 group"
         >
           <StockLogo symbol={item.symbol} size={24} />
@@ -160,7 +161,7 @@ function EarningsTab({ symbols }: { symbols: string[] }) {
         {filtered.map((e, i) => (
           <tr key={`${e.symbol}-${i}`} className="border-b border-gray-100">
             <td className="px-3 py-2 font-medium">
-              <Link href={`/stocks/${e.symbol}`} className="text-primary hover:underline inline-flex items-center gap-2">
+              <Link href={`/stocks/${e.symbol}`} target="_blank" className="text-primary hover:underline inline-flex items-center gap-2">
                 <StockLogo symbol={e.symbol} size={20} />
                 {e.symbol}
               </Link>

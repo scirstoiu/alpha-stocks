@@ -2,8 +2,10 @@
 
 import { use, useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   usePortfolio,
+  usePortfolios,
   useTransactions,
   useAddTransaction,
   useDeleteTransaction,
@@ -33,7 +35,9 @@ export default function PortfolioDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: portfolio, isLoading: loadingPortfolio } = usePortfolio(id);
+  const { data: portfolios } = usePortfolios();
   const { data: transactions, isLoading: loadingTx } = useTransactions(id);
   const addTransaction = useAddTransaction();
   const deleteTransaction = useDeleteTransaction();
@@ -41,6 +45,8 @@ export default function PortfolioDetailPage({
   const [showAddTx, setShowAddTx] = useState(false);
   const [showImportCsv, setShowImportCsv] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('positions');
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const symbols = useMemo(() => {
     if (!transactions) return [];
@@ -80,7 +86,16 @@ export default function PortfolioDetailPage({
       <div className="flex items-center gap-4 mb-6">
         <Link href="/portfolio" className="text-gray-400 hover:text-gray-600">&larr;</Link>
         <div>
-          <h1 className="text-2xl font-bold">{portfolio.name}</h1>
+          <select
+            value={id}
+            onChange={(e) => router.push(`/portfolio/${e.target.value}`)}
+            className="text-2xl font-bold bg-transparent border-none outline-none cursor-pointer appearance-none pr-6"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right center' }}
+          >
+            {portfolios?.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
           {portfolio.description && (
             <p className="text-sm text-gray-500">{portfolio.description}</p>
           )}
@@ -161,50 +176,19 @@ export default function PortfolioDetailPage({
 
       {/* Tab content */}
       {activeTab === 'positions' && summary && summary.positions.length > 0 && (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left px-4 py-1 font-medium text-gray-400 text-xs">Symbol</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Shares</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Avg Cost</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Price</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Value</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Daily P&L</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Daily P&L (%)</th>
-              <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">P&L</th>
-            </tr>
-          </thead>
-          <tbody>
-            {summary.positions.map((pos) => {
-              const isPositive = (pos.unrealizedGain ?? 0) >= 0;
-              return (
-                <tr key={pos.symbol} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-1">
-                    <Link href={`/stocks/${pos.symbol}`} className="inline-flex items-center gap-2 group">
-                      <StockLogo symbol={pos.symbol} size={24} />
-                      <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded transition-colors tracking-wide">{pos.symbol}</span>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-1 text-right">{pos.shares.toFixed(2)}</td>
-                  <td className="px-4 py-1 text-right">{formatCurrency(pos.averageCost)}</td>
-                  <td className="px-4 py-1 text-right">{pos.currentPrice ? formatCurrency(pos.currentPrice) : '—'}</td>
-                  <td className="px-4 py-1 text-right font-medium">{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</td>
-                  <td className={`px-4 py-1 text-right ${(pos.dayChange ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
-                    {pos.dayChange != null ? formatCurrency(pos.dayChange) : '—'}
-                  </td>
-                  <td className={`px-4 py-1 text-right ${(pos.dayChangePercent ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
-                    {pos.dayChangePercent != null ? formatPercent(pos.dayChangePercent) : '—'}
-                  </td>
-                  <td className={`px-4 py-1 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
-                    {pos.unrealizedGain != null
-                      ? `${formatCurrency(pos.unrealizedGain)} (${formatPercent(pos.unrealizedGainPercent!)})`
-                      : '—'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <PositionsTable
+          positions={summary.positions}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={(col) => {
+            if (sortColumn === col) {
+              setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+            } else {
+              setSortColumn(col);
+              setSortDirection(col === 'symbol' ? 'asc' : 'desc');
+            }
+          }}
+        />
       )}
 
       {activeTab === 'positions' && (!summary || summary.positions.length === 0) && (
@@ -244,7 +228,7 @@ export default function PortfolioDetailPage({
                       </span>
                     </td>
                     <td className="px-4 py-1">
-                      <Link href={`/stocks/${tx.symbol}`} className="inline-flex items-center gap-2 group">
+                      <Link href={`/stocks/${tx.symbol}`} target="_blank" className="inline-flex items-center gap-2 group">
                         <StockLogo symbol={tx.symbol} size={24} />
                         <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-1.5 py-0.5 rounded transition-colors tracking-wide">{tx.symbol}</span>
                       </Link>
@@ -287,6 +271,104 @@ export default function PortfolioDetailPage({
         portfolioId={id}
       />
     </div>
+  );
+}
+
+type SortKey = 'symbol' | 'shares' | 'averageCost' | 'currentPrice' | 'currentValue' | 'dayChange' | 'dayChangePercent' | 'unrealizedGain';
+
+function PositionsTable({
+  positions,
+  sortColumn,
+  sortDirection,
+  onSort,
+}: {
+  positions: ReturnType<typeof computePortfolioSummary>['positions'];
+  sortColumn: string | null;
+  sortDirection: 'asc' | 'desc';
+  onSort: (col: SortKey) => void;
+}) {
+  const sorted = useMemo(() => {
+    if (!sortColumn) return positions;
+    const col = sortColumn as SortKey;
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    return [...positions].sort((a, b) => {
+      let av: number | string, bv: number | string;
+      switch (col) {
+        case 'symbol': av = a.symbol; bv = b.symbol; break;
+        case 'shares': av = a.shares; bv = b.shares; break;
+        case 'averageCost': av = a.averageCost; bv = b.averageCost; break;
+        case 'currentPrice': av = a.currentPrice ?? 0; bv = b.currentPrice ?? 0; break;
+        case 'currentValue': av = a.currentValue ?? 0; bv = b.currentValue ?? 0; break;
+        case 'dayChange': av = a.dayChange ?? 0; bv = b.dayChange ?? 0; break;
+        case 'dayChangePercent': av = a.dayChangePercent ?? 0; bv = b.dayChangePercent ?? 0; break;
+        case 'unrealizedGain': av = a.unrealizedGain ?? 0; bv = b.unrealizedGain ?? 0; break;
+        default: return 0;
+      }
+      if (typeof av === 'string') return dir * av.localeCompare(bv as string);
+      return dir * ((av as number) - (bv as number));
+    });
+  }, [positions, sortColumn, sortDirection]);
+
+  const columns: { key: SortKey; label: string; align: 'left' | 'right' }[] = [
+    { key: 'symbol', label: 'Symbol', align: 'left' },
+    { key: 'shares', label: 'Shares', align: 'right' },
+    { key: 'averageCost', label: 'Avg Cost', align: 'right' },
+    { key: 'currentPrice', label: 'Price', align: 'right' },
+    { key: 'currentValue', label: 'Value', align: 'right' },
+    { key: 'dayChange', label: 'Daily P&L', align: 'right' },
+    { key: 'dayChangePercent', label: 'Daily P&L (%)', align: 'right' },
+    { key: 'unrealizedGain', label: 'P&L', align: 'right' },
+  ];
+
+  const arrow = (col: SortKey) =>
+    sortColumn === col ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
+
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-gray-200">
+          {columns.map((col) => (
+            <th
+              key={col.key}
+              onClick={() => onSort(col.key)}
+              className={`${col.align === 'left' ? 'text-left' : 'text-right'} px-4 py-1 font-medium text-gray-400 text-xs cursor-pointer hover:text-gray-600 select-none`}
+            >
+              {col.label}{arrow(col.key)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((pos) => {
+          const isPositive = (pos.unrealizedGain ?? 0) >= 0;
+          return (
+            <tr key={pos.symbol} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="px-4 py-1">
+                <Link href={`/stocks/${pos.symbol}`} target="_blank" className="inline-flex items-center gap-2 group">
+                  <StockLogo symbol={pos.symbol} size={24} />
+                  <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-2 py-1 rounded transition-colors tracking-wide">{pos.symbol}</span>
+                </Link>
+              </td>
+              <td className="px-4 py-1 text-right">{Math.round(pos.shares)}</td>
+              <td className="px-4 py-1 text-right">{formatCurrency(pos.averageCost)}</td>
+              <td className="px-4 py-1 text-right">{pos.currentPrice ? formatCurrency(pos.currentPrice) : '—'}</td>
+              <td className="px-4 py-1 text-right font-medium">{pos.currentValue ? formatCurrency(pos.currentValue) : '—'}</td>
+              <td className={`px-4 py-1 text-right ${(pos.dayChange ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {pos.dayChange != null ? formatCurrency(pos.dayChange) : '—'}
+              </td>
+              <td className={`px-4 py-1 text-right ${(pos.dayChangePercent ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {pos.dayChangePercent != null ? formatPercent(pos.dayChangePercent) : '—'}
+              </td>
+              <td className={`px-4 py-1 text-right ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                {pos.unrealizedGain != null
+                  ? `${formatCurrency(pos.unrealizedGain)} (${formatPercent(pos.unrealizedGainPercent!)})`
+                  : '—'}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 

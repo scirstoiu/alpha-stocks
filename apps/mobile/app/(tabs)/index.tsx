@@ -34,8 +34,8 @@ const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
   ],
   currencies: [
     { symbol: 'EURUSD=X', name: 'EUR/USD' },
-    { symbol: 'GBPUSD=X', name: 'GBP/USD' },
     { symbol: 'EURRON=X', name: 'EUR/RON' },
+    { symbol: 'GBPUSD=X', name: 'GBP/USD' },
     { symbol: 'JPY=X', name: 'USD/JPY' },
   ],
 };

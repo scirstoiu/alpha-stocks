@@ -31,7 +31,7 @@ export default function StockSearch() {
   function handleSelect(symbol: string) {
     setQuery('');
     setIsOpen(false);
-    router.push(`/stocks/${symbol}`);
+    window.open(`/stocks/${symbol}`, '_blank');
   }
 
   return (

@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -52,6 +52,7 @@ export default function PortfolioDetailScreen() {
   const gesture = Gesture.Race(flingLeft, flingRight);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['quotes'] });
@@ -84,7 +85,28 @@ export default function PortfolioDetailScreen() {
         {totalCount > 1 && (
           <Text style={styles.pageIndicator}>{currentIdx + 1} / {totalCount}</Text>
         )}
-        <Text style={styles.title}>{portfolio?.name}</Text>
+        <TouchableOpacity onPress={() => totalCount > 1 && setShowPicker(true)} style={styles.titleRow}>
+          <Text style={styles.title}>{portfolio?.name}</Text>
+          {totalCount > 1 && <Text style={styles.titleArrow}>▼</Text>}
+        </TouchableOpacity>
+        <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
+          <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
+            <View style={styles.pickerSheet}>
+              {portfolios?.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.pickerItem, p.id === id && styles.pickerItemActive]}
+                  onPress={() => {
+                    setShowPicker(false);
+                    if (p.id !== id) router.replace(`/portfolio/${p.id}` as never);
+                  }}
+                >
+                  <Text style={[styles.pickerItemText, p.id === id && styles.pickerItemTextActive]}>{p.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
       {summary && (
         <View style={styles.metricsGrid}>
@@ -132,7 +154,7 @@ export default function PortfolioDetailScreen() {
                 <StockLogo symbol={pos.symbol} size={36} />
                 <View>
                   <Text style={styles.posSymbol}>{pos.symbol}</Text>
-                  <Text style={styles.posShares}>{pos.shares.toFixed(2)} shares @ {formatCurrency(pos.averageCost)}</Text>
+                  <Text style={styles.posShares}>{Math.round(pos.shares)} shares @ {formatCurrency(pos.averageCost)}</Text>
                 </View>
               </View>
               <View style={styles.posRight}>
@@ -187,7 +209,15 @@ export default function PortfolioDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
   pageIndicator: { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginBottom: 4 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  title: { fontSize: 22, fontWeight: 'bold' },
+  titleArrow: { fontSize: 14, color: '#6b7280', marginTop: 2 },
+  pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  pickerSheet: { backgroundColor: '#fff', borderRadius: 12, padding: 8, width: '80%', maxHeight: '60%' },
+  pickerItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 8 },
+  pickerItemActive: { backgroundColor: '#eff6ff' },
+  pickerItemText: { fontSize: 16, fontWeight: '500', color: '#374151' },
+  pickerItemTextActive: { color: '#2563eb', fontWeight: '700' },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   metricCard: { width: '48%', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' },
   metricLabel: { fontSize: 11, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },

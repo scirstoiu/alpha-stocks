@@ -45,8 +45,8 @@ const INDICES: Record<MarketTab, { symbol: string; name: string }[]> = {
   ],
   currencies: [
     { symbol: 'EURUSD=X', name: 'EUR / USD' },
-    { symbol: 'GBPUSD=X', name: 'GBP / USD' },
     { symbol: 'EURRON=X', name: 'EUR / RON' },
+    { symbol: 'GBPUSD=X', name: 'GBP / USD' },
     { symbol: 'JPY=X', name: 'USD / JPY' },
     { symbol: 'CAD=X', name: 'USD / CAD' },
   ],
@@ -101,6 +101,7 @@ function MarketIndices() {
                 <Link
                   key={idx.symbol}
                   href={`/stocks/${encodeURIComponent(idx.symbol)}`}
+                  target="_blank"
                   className="flex-shrink-0 border border-gray-200 rounded-lg px-3 py-2.5 hover:shadow-md transition-shadow bg-white flex items-center gap-3"
                 >
                   <span className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-base flex-shrink-0 ${isPositive ? 'bg-green-50 text-gain' : 'bg-red-50 text-loss'}`}>
@@ -163,7 +164,7 @@ function WatchlistHighlights() {
       <h3 className="px-4 py-2 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50">Top Movers</h3>
       <div className="divide-y divide-gray-100">
         {topMovers.map((q) => (
-          <Link key={q.symbol} href={`/stocks/${q.symbol}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
+          <Link key={q.symbol} href={`/stocks/${q.symbol}`} target="_blank" className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
             <div className="flex items-center gap-2">
               <StockLogo symbol={q.symbol} size={24} />
               <span className="font-medium text-sm">{q.symbol}</span>
@@ -217,7 +218,7 @@ function UpcomingEarnings() {
       <h3 className="px-4 py-2 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50">Upcoming Earnings</h3>
       <div className="divide-y divide-gray-100">
         {myEarnings.map((e, i) => (
-          <Link key={`${e.symbol}-${i}`} href={`/stocks/${e.symbol}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
+          <Link key={`${e.symbol}-${i}`} href={`/stocks/${e.symbol}`} target="_blank" className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
             <span className="font-medium text-sm">{e.symbol}</span>
             <span className="text-xs text-gray-500">{formatDate(e.date)}</span>
           </Link>
