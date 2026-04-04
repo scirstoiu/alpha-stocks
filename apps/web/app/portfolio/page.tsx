@@ -419,7 +419,11 @@ function PieChart({ data, size }: {
     const path = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
     startAngle = endAngle;
 
-    return <path key={d.label} d={path} fill={d.color} stroke="white" strokeWidth={2} />;
+    return (
+      <path key={d.label} d={path} fill={d.color} stroke="white" strokeWidth={2} className="hover:opacity-80 transition-opacity">
+        <title>{d.label} — {formatCurrency(d.value)} ({(pct * 100).toFixed(1)}%)</title>
+      </path>
+    );
   });
 
   return (

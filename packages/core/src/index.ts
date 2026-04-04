@@ -32,7 +32,7 @@ export { useFinancials } from './hooks/use-financials';
 export { useWatchlists, useWatchlist, useCreateWatchlist, useDeleteWatchlist, useAddWatchlistItem, useRemoveWatchlistItem, useReorderWatchlistItems } from './hooks/use-watchlists';
 
 // Portfolio hooks
-export { usePortfolios, usePortfolio, useTransactions, useCreatePortfolio, useDeletePortfolio, useAddTransaction, useDeleteTransaction, useReorderPortfolios, useBulkAddTransactions } from './hooks/use-portfolios';
+export { usePortfolios, usePortfolio, useTransactions, useCreatePortfolio, useRenamePortfolio, useDeletePortfolio, useAddTransaction, useDeleteTransaction, useReorderPortfolios, useBulkAddTransactions } from './hooks/use-portfolios';
 
 // Calculations
 export { computePositions, computePortfolioSummary, computeRealizedGains, computeTotalDividends } from './calculations/portfolio-metrics';

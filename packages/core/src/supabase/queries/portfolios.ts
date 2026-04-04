@@ -50,6 +50,11 @@ export async function createPortfolio(
   return data;
 }
 
+export async function renamePortfolio(supabase: SupabaseClient, id: string, name: string): Promise<void> {
+  const { error } = await supabase.from('portfolios').update({ name }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function deletePortfolio(supabase: SupabaseClient, id: string): Promise<void> {
   const { error } = await supabase.from('portfolios').delete().eq('id', id);
   if (error) throw error;

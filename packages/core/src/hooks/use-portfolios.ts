@@ -41,6 +41,19 @@ export function useCreatePortfolio() {
   });
 }
 
+export function useRenamePortfolio() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      queries.renamePortfolio(supabase, id, name),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio', variables.id] });
+    },
+  });
+}
+
 export function useDeletePortfolio() {
   const supabase = useSupabase();
   const queryClient = useQueryClient();

@@ -9,6 +9,7 @@ import {
   useTransactions,
   useAddTransaction,
   useDeleteTransaction,
+  useRenamePortfolio,
   useDeletePortfolio,
   useStockQuotes,
   useHistoricalPrices,
@@ -41,9 +42,12 @@ export default function PortfolioDetailPage({
   const { data: transactions, isLoading: loadingTx } = useTransactions(id);
   const addTransaction = useAddTransaction();
   const deleteTransaction = useDeleteTransaction();
+  const renamePortfolio = useRenamePortfolio();
   const deletePortfolio = useDeletePortfolio();
   const [showAddTx, setShowAddTx] = useState(false);
   const [showImportCsv, setShowImportCsv] = useState(false);
+  const [showRename, setShowRename] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('positions');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -145,6 +149,12 @@ export default function PortfolioDetailPage({
             Add Transaction
           </button>
           <button
+            onClick={() => { setRenameValue(portfolio.name); setShowRename(true); }}
+            className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            Rename
+          </button>
+          <button
             onClick={() => {
               if (confirm(`Delete "${portfolio.name}"? This cannot be undone.`)) {
                 deletePortfolio.mutate(portfolio.id);
@@ -157,6 +167,35 @@ export default function PortfolioDetailPage({
           </button>
         </div>
       </div>
+
+      {/* Rename modal */}
+      <Modal open={showRename} onClose={() => setShowRename(false)} title="Rename Portfolio">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (renameValue.trim()) {
+            renamePortfolio.mutate({ id: portfolio.id, name: renameValue.trim() });
+            setShowRename(false);
+          }
+        }}>
+          <input
+            type="text"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setShowRename(false)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
+            <button
+              type="submit"
+              disabled={!renameValue.trim() || renamePortfolio.isPending}
+              className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark disabled:opacity-50"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Summary metrics */}
       {summary && (
