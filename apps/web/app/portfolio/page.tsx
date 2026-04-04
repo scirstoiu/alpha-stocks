@@ -430,6 +430,8 @@ function PieChart({ data, size }: {
   data: { label: string; value: number; color: string }[];
   size: number;
 }) {
+  const [tooltip, setTooltip] = useState<{ label: string; value: number; pct: number; x: number; y: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return null;
 
@@ -453,16 +455,40 @@ function PieChart({ data, size }: {
     startAngle = endAngle;
 
     return (
-      <path key={d.label} d={path} fill={d.color} stroke="white" strokeWidth={2} className="hover:opacity-80 transition-opacity">
-        <title>{d.label} — {formatCurrency(d.value)} ({(pct * 100).toFixed(1)}%)</title>
-      </path>
+      <path
+        key={d.label}
+        d={path}
+        fill={d.color}
+        stroke="white"
+        strokeWidth={2}
+        className="hover:opacity-80 transition-opacity"
+        onMouseMove={(e) => {
+          const rect = svgRef.current?.getBoundingClientRect();
+          if (rect) {
+            setTooltip({ label: d.label, value: d.value, pct: pct * 100, x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }
+        }}
+        onMouseLeave={() => setTooltip(null)}
+      />
     );
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
-      {paths}
-    </svg>
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg ref={svgRef} width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {paths}
+      </svg>
+      {tooltip && (
+        <div
+          className="absolute pointer-events-none bg-gray-900 text-white text-xs rounded-md px-2.5 py-1.5 shadow-lg whitespace-nowrap z-50"
+          style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}
+        >
+          <span className="font-semibold">{tooltip.label}</span>
+          <span className="text-gray-300 ml-1.5">{formatCurrency(tooltip.value)}</span>
+          <span className="text-gray-400 ml-1.5">{tooltip.pct.toFixed(1)}%</span>
+        </div>
+      )}
+    </div>
   );
 }
 
