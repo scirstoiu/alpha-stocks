@@ -55,14 +55,47 @@ export default function PortfoliosPage() {
     if (portfolios) setOrdered(portfolios);
   }, [portfolios]);
 
-  const [summaries, setSummaries] = useState<Map<string, PortfolioSummary>>(new Map());
-  const reportSummary = useCallback((id: string, summary: PortfolioSummary) => {
-    setSummaries((prev) => {
-      const next = new Map(prev);
-      next.set(id, summary);
-      return next;
-    });
-  }, []);
+  // Fetch all transactions in parallel (one hook per portfolio)
+  const txQueries = (portfolios || []).map((p) => ({
+    id: p.id,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    query: useTransactions(p.id),
+  }));
+
+  // Collect all unique symbols across all portfolios
+  const allSymbols = useMemo(() => {
+    const symbols = new Set<string>();
+    for (const tq of txQueries) {
+      if (tq.query.data) {
+        for (const t of tq.query.data) symbols.add(t.symbol);
+      }
+    }
+    return [...symbols];
+  }, [txQueries]);
+
+  // Single batch quote fetch for all symbols
+  const { data: allQuotes } = useStockQuotes(allSymbols);
+
+  // Compute summaries for each portfolio
+  const summaries = useMemo(() => {
+    const map = new Map<string, PortfolioSummary>();
+    if (!allQuotes) return map;
+    const quoteMap = new Map(allQuotes.map((q) => [q.symbol, q]));
+    for (const tq of txQueries) {
+      const transactions = tq.query.data;
+      if (!transactions) continue;
+      if (transactions.length === 0) {
+        map.set(tq.id, {
+          totalValue: 0, totalCostBasis: 0, totalUnrealizedGain: 0,
+          totalUnrealizedGainPercent: 0, totalRealizedGain: 0, totalDividends: 0,
+          positions: [], dayChange: 0, dayChangePercent: 0,
+        });
+      } else {
+        map.set(tq.id, computePortfolioSummary(transactions, quoteMap));
+      }
+    }
+    return map;
+  }, [allQuotes, txQueries]);
 
   const totalValue = useMemo(() => {
     let total = 0;
@@ -165,7 +198,7 @@ export default function PortfoliosPage() {
             <SortableContext items={ordered.map((p) => p.id)} strategy={rectSortingStrategy}>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {ordered.map((p) => (
-                  <SortablePortfolioCard key={p.id} portfolio={p} onSummary={reportSummary} />
+                  <SortablePortfolioCard key={p.id} portfolio={p} summary={summaries.get(p.id) ?? null} />
                 ))}
               </div>
             </SortableContext>
@@ -608,10 +641,10 @@ function ConsolidatedChart({ summaries, portfolios }: {
 
 function SortablePortfolioCard({
   portfolio,
-  onSummary,
+  summary,
 }: {
   portfolio: Portfolio;
-  onSummary: (id: string, summary: PortfolioSummary) => void;
+  summary: PortfolioSummary | null;
 }) {
   const router = useRouter();
   const didDrag = useRef(false);
@@ -633,42 +666,6 @@ function SortablePortfolioCard({
   useEffect(() => {
     if (isDragging) didDrag.current = true;
   }, [isDragging]);
-
-  const { data: transactions } = useTransactions(portfolio.id);
-
-  const symbols = useMemo(() => {
-    if (!transactions) return [];
-    return [...new Set(transactions.map((t) => t.symbol))];
-  }, [transactions]);
-
-  const { data: quotes } = useStockQuotes(symbols);
-
-  const summary = useMemo(() => {
-    if (!transactions || !quotes) return null;
-    const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
-    return computePortfolioSummary(transactions, quoteMap);
-  }, [transactions, quotes]);
-
-  useEffect(() => {
-    if (summary) onSummary(portfolio.id, summary);
-  }, [summary, portfolio.id, onSummary]);
-
-  // Report zero summary for empty portfolios so the parent knows they're loaded
-  useEffect(() => {
-    if (transactions && transactions.length === 0) {
-      onSummary(portfolio.id, {
-        totalValue: 0,
-        totalCostBasis: 0,
-        totalUnrealizedGain: 0,
-        totalUnrealizedGainPercent: 0,
-        totalRealizedGain: 0,
-        totalDividends: 0,
-        positions: [],
-        dayChange: 0,
-        dayChangePercent: 0,
-      });
-    }
-  }, [transactions, portfolio.id, onSummary]);
 
   function handleClick() {
     if (didDrag.current) {
@@ -709,9 +706,7 @@ function SortablePortfolioCard({
         ) : (
           <div className="min-w-0">
             <div className="text-sm font-semibold">{portfolio.name}</div>
-            <div className="text-xs text-gray-400 mt-0.5">
-              {transactions && transactions.length === 0 ? 'No transactions yet' : 'Loading...'}
-            </div>
+            <div className="text-xs text-gray-400 mt-0.5">Loading...</div>
           </div>
         )}
       </div>

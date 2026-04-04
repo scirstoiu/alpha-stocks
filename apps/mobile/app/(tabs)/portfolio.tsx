@@ -24,47 +24,12 @@ const PIE_COLORS = [
   '#14b8a6', '#e11d48', '#0ea5e9', '#a855f7', '#eab308',
 ];
 
-function PortfolioCard({ portfolio, onDelete, onSummary }: {
+function PortfolioCard({ portfolio, summary, onDelete }: {
   portfolio: Portfolio;
+  summary: PortfolioSummary | null;
   onDelete: () => void;
-  onSummary: (id: string, summary: PortfolioSummary) => void;
 }) {
   const router = useRouter();
-  const { data: transactions } = useTransactions(portfolio.id);
-
-  const symbols = useMemo(() => {
-    if (!transactions) return [];
-    return [...new Set(transactions.map((t) => t.symbol))];
-  }, [transactions]);
-
-  const { data: quotes } = useStockQuotes(symbols);
-
-  const summary = useMemo(() => {
-    if (!transactions || !quotes) return null;
-    const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
-    return computePortfolioSummary(transactions, quoteMap);
-  }, [transactions, quotes]);
-
-  useEffect(() => {
-    if (summary) onSummary(portfolio.id, summary);
-  }, [summary, portfolio.id, onSummary]);
-
-  // Report zero summary for empty portfolios so the parent knows they're loaded
-  useEffect(() => {
-    if (transactions && transactions.length === 0) {
-      onSummary(portfolio.id, {
-        totalValue: 0,
-        totalCostBasis: 0,
-        totalUnrealizedGain: 0,
-        totalUnrealizedGainPercent: 0,
-        totalRealizedGain: 0,
-        totalDividends: 0,
-        positions: [],
-        dayChange: 0,
-        dayChangePercent: 0,
-      });
-    }
-  }, [transactions, portfolio.id, onSummary]);
 
   const isNeg = summary && summary.dayChange < 0;
 
@@ -93,9 +58,7 @@ function PortfolioCard({ portfolio, onDelete, onSummary }: {
       ) : (
         <View>
           <Text style={styles.cardTitle}>{portfolio.name}</Text>
-          {transactions && transactions.length === 0 ? (
-            <Text style={styles.cardHint}>No transactions yet</Text>
-          ) : null}
+          <Text style={styles.cardHint}>Loading...</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -296,14 +259,47 @@ export default function PortfolioScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
-  const [summaries, setSummaries] = useState<Map<string, PortfolioSummary>>(new Map());
-  const reportSummary = useCallback((id: string, s: PortfolioSummary) => {
-    setSummaries((prev) => {
-      const next = new Map(prev);
-      next.set(id, s);
-      return next;
-    });
-  }, []);
+  // Fetch all transactions in parallel (one hook per portfolio)
+  const txQueries = (portfolios || []).map((p) => ({
+    id: p.id,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    query: useTransactions(p.id),
+  }));
+
+  // Collect all unique symbols across all portfolios
+  const allSymbols = useMemo(() => {
+    const symbols = new Set<string>();
+    for (const tq of txQueries) {
+      if (tq.query.data) {
+        for (const t of tq.query.data) symbols.add(t.symbol);
+      }
+    }
+    return [...symbols];
+  }, [txQueries]);
+
+  // Single batch quote fetch for all symbols
+  const { data: allQuotes } = useStockQuotes(allSymbols);
+
+  // Compute summaries for each portfolio
+  const summaries = useMemo(() => {
+    const map = new Map<string, PortfolioSummary>();
+    if (!allQuotes) return map;
+    const quoteMap = new Map(allQuotes.map((q) => [q.symbol, q]));
+    for (const tq of txQueries) {
+      const transactions = tq.query.data;
+      if (!transactions) continue;
+      if (transactions.length === 0) {
+        map.set(tq.id, {
+          totalValue: 0, totalCostBasis: 0, totalUnrealizedGain: 0,
+          totalUnrealizedGainPercent: 0, totalRealizedGain: 0, totalDividends: 0,
+          positions: [], dayChange: 0, dayChangePercent: 0,
+        });
+      } else {
+        map.set(tq.id, computePortfolioSummary(transactions, quoteMap));
+      }
+    }
+    return map;
+  }, [allQuotes, txQueries]);
 
   const totals = useMemo(() => {
     let value = 0, dayChange = 0;
@@ -393,8 +389,8 @@ export default function PortfolioScreen() {
             renderItem={({ item }) => (
               <PortfolioCard
                 portfolio={item}
+                summary={summaries.get(item.id) ?? null}
                 onDelete={() => handleDelete(item.id, item.name)}
-                onSummary={reportSummary}
               />
             )}
           />
