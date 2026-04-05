@@ -16,7 +16,7 @@
       "package": "com.alphastocks.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#122864"
+        "backgroundColor": "#2556C4"
       }
     },
     "plugins": [
