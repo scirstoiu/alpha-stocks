@@ -248,40 +248,40 @@ function MyNews() {
     return [...s];
   }, [watchlists, transactions]);
 
-  // Fetch general news + news for top 3 symbols
-  const { data: generalNews, isLoading: loadingGeneral } = useNews();
+  // Fetch news for top 3 of my symbols only
   const symbolsToFetch = useMemo(() => [...mySymbols].slice(0, 3), [mySymbols]);
-  const { data: news1 } = useNews(symbolsToFetch[0]);
+  const { data: news1, isLoading } = useNews(symbolsToFetch[0]);
   const { data: news2 } = useNews(symbolsToFetch[1]);
   const { data: news3 } = useNews(symbolsToFetch[2]);
 
   const items = useMemo(() => {
     const seen = new Set<string>();
     const merged = [];
-    // Interleave: symbol-specific first, then general
-    for (const n of [...(news1 || []), ...(news2 || []), ...(news3 || []), ...(generalNews || [])]) {
+    for (const n of [...(news1 || []), ...(news2 || []), ...(news3 || [])]) {
       const key = n.headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
       if (seen.has(key)) continue;
       seen.add(key);
       merged.push(n);
     }
-    return merged.sort((a, b) => b.publishedAt - a.publishedAt).slice(0, 15);
-  }, [news1, news2, news3, generalNews]);
+    return merged.sort((a, b) => b.publishedAt - a.publishedAt);
+  }, [news1, news2, news3]);
 
-  if (loadingGeneral) return <Skeleton className="h-96 w-full" />;
+  if (isLoading) return <Skeleton className="h-64 w-full" />;
 
   if (items.length === 0) {
     return (
       <Card>
-        <p className="text-gray-400 text-sm py-4">No news available.</p>
+        <p className="text-gray-400 text-sm py-4">No news for your stocks.</p>
       </Card>
     );
   }
 
   return (
-    <Card className="overflow-hidden p-0">
-      <h3 className="px-4 py-2.5 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50">News</h3>
-      <div className="divide-y divide-gray-100">
+    <Card className="overflow-hidden p-0 h-full flex flex-col">
+      <h3 className="px-4 py-2.5 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+        News for your stocks
+      </h3>
+      <div className="divide-y divide-gray-100 overflow-y-auto flex-1">
         {items.map((n) => (
           <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
             <div className="flex-1 min-w-0">
@@ -303,7 +303,7 @@ function MyNews() {
           </a>
         ))}
       </div>
-      <Link href="/news" className="block px-4 py-2 text-xs text-primary hover:underline border-t border-gray-100">
+      <Link href="/news" className="block px-4 py-2 text-xs text-primary hover:underline border-t border-gray-100 flex-shrink-0">
         View all news &rarr;
       </Link>
     </Card>
@@ -328,8 +328,8 @@ export default function Dashboard() {
     <div>
       <MarketIndices />
 
-      <div className="grid gap-6 md:grid-cols-[1fr_340px] mb-6">
-        <div>
+      <div className="grid gap-6 md:grid-cols-2 items-start mb-6">
+        <div className="md:self-stretch flex flex-col">
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">News</h2>
           <MyNews />
         </div>
