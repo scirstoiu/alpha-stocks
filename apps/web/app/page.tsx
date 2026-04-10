@@ -233,7 +233,10 @@ function UpcomingEarnings() {
       <div className="divide-y divide-gray-100">
         {myEarnings.map((e, i) => (
           <Link key={`${e.symbol}-${i}`} href={`/stocks/${e.symbol}`} target="_blank" className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
-            <span className="font-medium text-sm">{e.symbol}</span>
+            <div className="flex items-center gap-2">
+              <StockLogo symbol={e.symbol} size={20} />
+              <span className="font-medium text-sm">{e.symbol}</span>
+            </div>
             <span className="text-xs text-gray-500">{formatDate(e.date)}</span>
           </Link>
         ))}
