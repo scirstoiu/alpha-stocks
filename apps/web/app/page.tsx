@@ -157,8 +157,11 @@ function WatchlistHighlights() {
     );
   }
 
-  const gainers = [...(quotes || [])].filter((q) => q.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, 6);
-  const losers = [...(quotes || [])].filter((q) => q.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 6);
+  const allGainers = [...(quotes || [])].filter((q) => q.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent);
+  const allLosers = [...(quotes || [])].filter((q) => q.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent);
+  const count = Math.min(6, Math.max(allGainers.length, allLosers.length));
+  const gainers = allGainers.slice(0, count);
+  const losers = allLosers.slice(0, count);
 
   const MoverRow = ({ q }: { q: typeof gainers[0] }) => (
     <Link href={`/stocks/${q.symbol}`} target="_blank" className="flex items-center justify-between py-2 hover:bg-gray-50 px-3">

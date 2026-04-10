@@ -126,37 +126,28 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
             </div>
           </div>
 
-          {/* Col 2: Analyst + Market Cap/Volume + EPS/Price-Book */}
+          {/* Col 2: Analyst badge + Market Cap/Volume/Avg Vol/EPS */}
           <div className="space-y-3">
             {quote.targetMeanPrice != null && (
-              <div>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {quote.recommendationKey && (
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
-                      {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
+              <div className="flex items-center gap-2 flex-wrap">
+                {quote.recommendationKey && (
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
+                    {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
+                  </span>
+                )}
+                {(() => {
+                  const upside = quote.targetMeanPrice && quote.price > 0
+                    ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
+                    : null;
+                  if (upside == null) return null;
+                  return (
+                    <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
+                      {upside >= 0 ? '+' : ''}{upside.toFixed(1)}%
                     </span>
-                  )}
-                  {(() => {
-                    const upside = quote.targetMeanPrice && quote.price > 0
-                      ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
-                      : null;
-                    if (upside == null) return null;
-                    return (
-                      <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
-                        {upside >= 0 ? '+' : ''}{upside.toFixed(1)}%
-                      </span>
-                    );
-                  })()}
-                  {quote.numberOfAnalystOpinions != null && (
-                    <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-gray-500">Target </span>
-                  <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
-                </div>
-                {quote.targetLowPrice != null && quote.targetHighPrice != null && (
-                  <div className="text-xs text-gray-400">{formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)}</div>
+                  );
+                })()}
+                {quote.numberOfAnalystOpinions != null && (
+                  <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
                 )}
               </div>
             )}
@@ -183,21 +174,20 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                   <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
                 </div>
               )}
-              {quote.priceToBook != null && (
-                <div>
-                  <span className="text-gray-500">Price/Book</span>
-                  <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Col 3: Earnings + P/E + Beta + Dividend + Employees */}
+          {/* Col 3: Target + P/E + Earnings + Price/Book + Beta + Dividend + Employees */}
           <div className="space-y-3">
-            {quote.earningsTimestamp != null && (
+            {quote.targetMeanPrice != null && (
               <div>
-                <span className="text-gray-500">Next Earnings</span>
-                <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                <div>
+                  <span className="text-gray-500">Target </span>
+                  <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
+                </div>
+                {quote.targetLowPrice != null && quote.targetHighPrice != null && (
+                  <div className="text-xs text-gray-400">{formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)}</div>
+                )}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
@@ -211,6 +201,18 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                 <div>
                   <span className="text-gray-500">Forward P/E</span>
                   <p className="font-medium">{quote.forwardPE.toFixed(2)}</p>
+                </div>
+              )}
+              {quote.earningsTimestamp != null && (
+                <div>
+                  <span className="text-gray-500">Next Earnings</span>
+                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              )}
+              {quote.priceToBook != null && (
+                <div>
+                  <span className="text-gray-500">Price/Book</span>
+                  <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
                 </div>
               )}
               {quote.beta != null && (
