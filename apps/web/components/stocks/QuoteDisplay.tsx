@@ -104,135 +104,82 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
         </>
       )}
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
-      {!compact && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm">
-          {/* Col 1: Ranges + Open/Prev Close + Earnings/Employees */}
-          <div className="space-y-3">
-            {quote.low > 0 && quote.high > 0 && (
-              <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
-            )}
-            {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
-              <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
-            )}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <span className="text-gray-500">Open</span>
-                <p className="font-medium">{fmt(quote.open)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Prev Close</span>
-                <p className="font-medium">{fmt(quote.previousClose)}</p>
-              </div>
-              {quote.earningsTimestamp != null && (
-                <div>
-                  <span className="text-gray-500">Next Earnings</span>
-                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-              )}
-              {quote.fullTimeEmployees != null && (
-                <div>
-                  <span className="text-gray-500">Employees</span>
-                  <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
-                </div>
-              )}
-            </div>
-          </div>
+      {!compact && (() => {
+        // Build flat list of all available metrics
+        const metrics: { label: string; value: string }[] = [
+          { label: 'Open', value: fmt(quote.open) },
+          { label: 'Prev Close', value: fmt(quote.previousClose) },
+          ...(quote.marketCap != null ? [{ label: 'Market Cap', value: formatCompactNumber(quote.marketCap) }] : []),
+          { label: 'Volume', value: formatCompactNumber(quote.volume) },
+          ...(quote.averageDailyVolume3Month != null ? [{ label: 'Avg Volume', value: formatCompactNumber(quote.averageDailyVolume3Month) }] : []),
+          ...(quote.epsTrailingTwelveMonths != null ? [{ label: 'EPS (TTM)', value: quote.epsTrailingTwelveMonths.toFixed(2) }] : []),
+          ...(quote.trailingPE != null ? [{ label: 'P/E Ratio', value: quote.trailingPE.toFixed(2) }] : []),
+          ...(quote.forwardPE != null ? [{ label: 'Forward P/E', value: quote.forwardPE.toFixed(2) }] : []),
+          ...(quote.priceToBook != null ? [{ label: 'Price/Book', value: quote.priceToBook.toFixed(2) }] : []),
+          ...(quote.beta != null ? [{ label: 'Beta', value: quote.beta.toFixed(2) }] : []),
+          ...(quote.dividendYield != null && quote.dividendYield > 0 ? [{ label: 'Dividend Yield', value: `${(quote.dividendYield * 100).toFixed(2)}%` }] : []),
+          ...(quote.earningsTimestamp != null ? [{ label: 'Next Earnings', value: new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }] : []),
+          ...(quote.fullTimeEmployees != null ? [{ label: 'Employees', value: quote.fullTimeEmployees.toLocaleString() }] : []),
+        ];
 
-          {/* Col 2: Analyst + Target + P/E */}
-          <div className="space-y-3">
-            {quote.targetMeanPrice != null && (
-              <div>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {quote.recommendationKey && (
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
-                      {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
-                    </span>
-                  )}
-                  {(() => {
-                    const upside = quote.targetMeanPrice && quote.price > 0
-                      ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
-                      : null;
-                    if (upside == null) return null;
-                    return (
-                      <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
-                        {upside >= 0 ? '+' : ''}{upside.toFixed(1)}%
-                      </span>
-                    );
-                  })()}
-                  {quote.numberOfAnalystOpinions != null && (
-                    <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-gray-500">Target </span>
-                  <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
-                </div>
-                {quote.targetLowPrice != null && quote.targetHighPrice != null && (
-                  <div className="text-xs text-gray-400">{formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)}</div>
+        return (
+          <div className="space-y-4">
+            {/* Top: Ranges (left) + Analyst (right) */}
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-6">
+              <div className="space-y-2">
+                {quote.low > 0 && quote.high > 0 && (
+                  <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+                )}
+                {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
+                  <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
                 )}
               </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              {quote.trailingPE != null && (
+              {quote.targetMeanPrice != null && (
                 <div>
-                  <span className="text-gray-500">P/E Ratio</span>
-                  <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
-                </div>
-              )}
-              {quote.forwardPE != null && (
-                <div>
-                  <span className="text-gray-500">Forward P/E</span>
-                  <p className="font-medium">{quote.forwardPE.toFixed(2)}</p>
-                </div>
-              )}
-              {quote.epsTrailingTwelveMonths != null && (
-                <div>
-                  <span className="text-gray-500">EPS (TTM)</span>
-                  <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
-                </div>
-              )}
-              {quote.priceToBook != null && (
-                <div>
-                  <span className="text-gray-500">Price/Book</span>
-                  <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {quote.recommendationKey && (
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
+                        {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
+                      </span>
+                    )}
+                    {(() => {
+                      const upside = quote.targetMeanPrice && quote.price > 0
+                        ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
+                        : null;
+                      if (upside == null) return null;
+                      return (
+                        <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
+                          {upside >= 0 ? '+' : ''}{upside.toFixed(1)}%
+                        </span>
+                      );
+                    })()}
+                    {quote.numberOfAnalystOpinions != null && (
+                      <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Target </span>
+                    <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
+                  </div>
+                  {quote.targetLowPrice != null && quote.targetHighPrice != null && (
+                    <div className="text-xs text-gray-400">{formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)}</div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Col 3: Market/Trading */}
-          <div className="grid grid-cols-2 gap-3 content-start">
-            {quote.marketCap != null && (
-              <div>
-                <span className="text-gray-500">Market Cap</span>
-                <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
-              </div>
-            )}
-            <div>
-              <span className="text-gray-500">Volume</span>
-              <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
+            {/* Metrics grid — evenly distributed, no gaps */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-sm border-t border-gray-100 pt-3">
+              {metrics.map((m) => (
+                <div key={m.label}>
+                  <span className="text-gray-500">{m.label}</span>
+                  <p className="font-medium">{m.value}</p>
+                </div>
+              ))}
             </div>
-            {quote.averageDailyVolume3Month != null && (
-              <div>
-                <span className="text-gray-500">Avg Volume</span>
-                <p className="font-medium">{formatCompactNumber(quote.averageDailyVolume3Month)}</p>
-              </div>
-            )}
-            {quote.beta != null && (
-              <div>
-                <span className="text-gray-500">Beta</span>
-                <p className="font-medium">{quote.beta.toFixed(2)}</p>
-              </div>
-            )}
-            {quote.dividendYield != null && quote.dividendYield > 0 && (
-              <div>
-                <span className="text-gray-500">Dividend Yield</span>
-                <p className="font-medium">{(quote.dividendYield * 100).toFixed(2)}%</p>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </Card>
   );
 }
