@@ -10,6 +10,7 @@ import {
   useWatchlists,
   usePortfolios,
   useTransactions,
+  useAllTransactions,
   useStockQuotes,
   useEarningsCalendar,
   useNews,
@@ -204,12 +205,20 @@ function UpcomingEarnings() {
   const to = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
   const { data: earnings, isLoading } = useEarningsCalendar(from, to);
   const { data: watchlists } = useWatchlists();
+  const { data: portfolios } = usePortfolios();
+  const portfolioIds = useMemo(() => (portfolios || []).map((p) => p.id), [portfolios]);
+  const txResults = useAllTransactions(portfolioIds);
 
   const mySymbols = useMemo(() => {
     const s = new Set<string>();
     watchlists?.forEach((wl) => wl.items?.forEach((i) => s.add(i.symbol)));
+    for (const result of txResults) {
+      if (result.data) {
+        for (const t of result.data) s.add(t.symbol);
+      }
+    }
     return s;
-  }, [watchlists]);
+  }, [watchlists, txResults]);
 
   const myEarnings = useMemo(() => {
     if (!earnings) return [];
