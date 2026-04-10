@@ -176,7 +176,7 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
           </div>
 
           {/* Key Stats — 4 column grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-sm border-t border-gray-100 pt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-sm border-t border-gray-100 pt-4">
             <div>
               <span className="text-gray-500">Open</span>
               <p className="font-medium">{fmt(quote.open)}</p>

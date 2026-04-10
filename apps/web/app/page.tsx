@@ -161,12 +161,12 @@ function WatchlistHighlights() {
   const losers = [...(quotes || [])].filter((q) => q.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 6);
 
   const MoverRow = ({ q }: { q: typeof gainers[0] }) => (
-    <Link href={`/stocks/${q.symbol}`} target="_blank" className="flex items-center justify-between py-1.5 hover:bg-gray-50 px-3">
+    <Link href={`/stocks/${q.symbol}`} target="_blank" className="flex items-center justify-between py-2 hover:bg-gray-50 px-3">
       <div className="flex items-center gap-2 min-w-0">
-        <StockLogo symbol={q.symbol} size={20} />
-        <span className="font-medium text-xs truncate">{q.symbol}</span>
+        <StockLogo symbol={q.symbol} size={24} />
+        <span className="font-semibold text-sm truncate">{q.symbol}</span>
       </div>
-      <span className={`text-xs font-medium flex-shrink-0 ${q.changePercent >= 0 ? 'text-gain' : 'text-loss'}`}>
+      <span className={`text-sm font-semibold flex-shrink-0 ${q.changePercent >= 0 ? 'text-gain' : 'text-loss'}`}>
         {formatPercent(q.changePercent)}
       </span>
     </Link>
@@ -176,14 +176,14 @@ function WatchlistHighlights() {
     <Card className="overflow-hidden p-0">
       <div className="grid grid-cols-2 divide-x divide-gray-200">
         <div>
-          <h3 className="px-3 py-1.5 text-xs font-medium text-gain border-b border-gray-200 bg-gray-50">Gainers</h3>
+          <h3 className="px-3 py-2 text-sm font-semibold text-gain border-b border-gray-200 bg-gray-50">Gainers</h3>
           <div className="divide-y divide-gray-50">
             {gainers.map((q) => <MoverRow key={q.symbol} q={q} />)}
             {gainers.length === 0 && <p className="text-xs text-gray-400 px-3 py-3">No gainers today</p>}
           </div>
         </div>
         <div>
-          <h3 className="px-3 py-1.5 text-xs font-medium text-loss border-b border-gray-200 bg-gray-50">Losers</h3>
+          <h3 className="px-3 py-2 text-sm font-semibold text-loss border-b border-gray-200 bg-gray-50">Losers</h3>
           <div className="divide-y divide-gray-50">
             {losers.map((q) => <MoverRow key={q.symbol} q={q} />)}
             {losers.length === 0 && <p className="text-xs text-gray-400 px-3 py-3">No losers today</p>}
