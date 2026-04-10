@@ -5,6 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import StockLogo from '../../components/stocks/StockLogo';
 import {
   useWatchlists,
+  usePortfolios,
+  useTransactions,
   useStockQuotes,
   useNews,
   formatCurrency,
@@ -54,9 +56,19 @@ export default function HomeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: watchlists } = useWatchlists();
-  const { data: news } = useNews();
+  const { data: portfolios } = usePortfolios();
+  const firstPortfolioId = portfolios?.[0]?.id || '';
+  const { data: transactions } = useTransactions(firstPortfolioId);
   const [refreshing, setRefreshing] = useState(false);
   const [marketTab, setMarketTab] = useState<MarketTab>('us');
+
+  // Collect all symbols from watchlists + portfolio
+  const allMySymbols = useMemo(() => {
+    const s = new Set<string>();
+    watchlists?.forEach((wl) => wl.items?.forEach((i) => s.add(i.symbol)));
+    transactions?.forEach((t) => s.add(t.symbol));
+    return [...s];
+  }, [watchlists, transactions]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -82,6 +94,40 @@ export default function HomeScreen() {
     if (!wlQuotes) return [];
     return [...wlQuotes].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 5);
   }, [wlQuotes]);
+
+  // News: fetch for top 3 symbols by portfolio weight
+  const { data: myQuotes } = useStockQuotes(allMySymbols);
+  const symbolsByWeight = useMemo(() => {
+    if (!myQuotes || !transactions) return allMySymbols.slice(0, 3);
+    const holdings = new Map<string, number>();
+    for (const tx of transactions) {
+      const cur = holdings.get(tx.symbol) || 0;
+      if (tx.type === 'buy') holdings.set(tx.symbol, cur + tx.shares);
+      else if (tx.type === 'sell') holdings.set(tx.symbol, cur - tx.shares);
+    }
+    const quoteMap = new Map(myQuotes.map((q) => [q.symbol, q]));
+    return [...allMySymbols].sort((a, b) => {
+      const va = (holdings.get(a) || 0) * (quoteMap.get(a)?.price || 0);
+      const vb = (holdings.get(b) || 0) * (quoteMap.get(b)?.price || 0);
+      return vb - va;
+    }).slice(0, 3);
+  }, [allMySymbols, myQuotes, transactions]);
+
+  const { data: news1 } = useNews(symbolsByWeight[0]);
+  const { data: news2 } = useNews(symbolsByWeight[1]);
+  const { data: news3 } = useNews(symbolsByWeight[2]);
+
+  const newsItems = useMemo(() => {
+    const seen = new Set<string>();
+    const merged = [];
+    for (const n of [...(news1 || []), ...(news2 || []), ...(news3 || [])]) {
+      const key = n.headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(n);
+    }
+    return merged.sort((a, b) => b.publishedAt - a.publishedAt).slice(0, 15);
+  }, [news1, news2, news3]);
 
   const tabs: { key: MarketTab; label: string }[] = [
     { key: 'us', label: 'US' },
@@ -161,14 +207,20 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Latest news */}
-      {news && news.length > 0 && (
+      {/* News for your stocks */}
+      {newsItems.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Latest News</Text>
-          {news.slice(0, 4).map((n) => (
+          <Text style={styles.sectionLabel}>News for your stocks</Text>
+          {newsItems.map((n) => (
             <View key={n.id} style={styles.newsRow}>
               <Text style={styles.newsHeadline} numberOfLines={2}>{n.headline}</Text>
-              <Text style={styles.newsMeta}>{n.source} · {timeAgo(n.publishedAt)}</Text>
+              <View style={styles.newsMetaRow}>
+                <Text style={styles.newsSource}>{n.source}</Text>
+                <Text style={styles.newsMeta}> · {timeAgo(n.publishedAt)}</Text>
+                {n.relatedSymbols && n.relatedSymbols.length > 0 && (
+                  <Text style={styles.newsTickers}> · {n.relatedSymbols.slice(0, 3).join(', ')}</Text>
+                )}
+              </View>
             </View>
           ))}
         </View>
@@ -200,6 +252,9 @@ const styles = StyleSheet.create({
   price: { fontWeight: '600', fontSize: 15 },
   change: { fontSize: 13, marginTop: 2 },
   newsRow: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
-  newsHeadline: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
-  newsMeta: { fontSize: 11, color: '#9ca3af' },
+  newsHeadline: { fontSize: 14, fontWeight: '600', marginBottom: 5, lineHeight: 20 },
+  newsMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  newsSource: { fontSize: 12, fontWeight: '600', color: '#2563eb' },
+  newsMeta: { fontSize: 12, color: '#9ca3af' },
+  newsTickers: { fontSize: 12, color: '#9ca3af' },
 });
