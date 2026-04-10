@@ -4,6 +4,7 @@
  */
 import type { IStockProvider } from '../types/provider';
 import type { Quote, SearchResult, OHLCV, CompanyProfile, HistoricalRange } from '../types/stock';
+import type { NewsItem } from '../types/news';
 import type { FinancialData } from '../types/financials';
 
 let yfInstance: InstanceType<Awaited<ReturnType<typeof getYahooClass>>> | null = null;
@@ -204,5 +205,25 @@ export function createYahooProvider(): IStockProvider {
         },
       };
     },
+
   };
+}
+
+export async function getYahooNews(symbol: string): Promise<NewsItem[]> {
+  const yf = await getYf();
+  try {
+    const result = await yf.search(symbol, { newsCount: 20, quotesCount: 0 });
+    return (result.news || []).map((n) => ({
+      id: `yahoo-${n.uuid}`,
+      headline: n.title,
+      summary: '',
+      source: n.publisher,
+      url: n.link,
+      imageUrl: n.thumbnail?.resolutions?.[0]?.url,
+      publishedAt: new Date(n.providerPublishTime).getTime(),
+      relatedSymbols: n.relatedTickers,
+    }));
+  } catch {
+    return [];
+  }
 }

@@ -20,29 +20,23 @@ function NewsCard({ item }: { item: NewsItem }) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+      className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
     >
-      <div className="flex">
-        {item.imageUrl && (
-          <div className="w-32 h-24 flex-shrink-0">
-            <img
-              src={item.imageUrl}
-              alt=""
-              className="w-full h-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </div>
-        )}
-        <div className="p-3 flex-1 min-w-0">
-          <h3 className="font-medium text-sm line-clamp-2 mb-1">{item.headline}</h3>
-          <p className="text-xs text-gray-500 line-clamp-2 mb-2">{item.summary}</p>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <span>{item.source}</span>
-            <span>&middot;</span>
-            <span>{timeAgo(item.publishedAt)}</span>
-          </div>
-        </div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">{item.source}</span>
+        <span className="text-xs text-gray-400">{timeAgo(item.publishedAt)}</span>
       </div>
+      <h3 className="font-semibold text-base leading-snug mb-1.5">{item.headline}</h3>
+      {item.summary && (
+        <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">{item.summary}</p>
+      )}
+      {item.relatedSymbols && item.relatedSymbols.length > 0 && (
+        <div className="flex gap-1.5 mt-2">
+          {item.relatedSymbols.slice(0, 5).map((s) => (
+            <span key={s} className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{s}</span>
+          ))}
+        </div>
+      )}
     </a>
   );
 }
@@ -54,7 +48,7 @@ export default function StockNews({ symbol }: { symbol: string }) {
     return (
       <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+          <Skeleton key={i} className="h-28 w-full" />
         ))}
       </div>
     );
