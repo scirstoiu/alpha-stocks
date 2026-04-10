@@ -38,6 +38,7 @@ import { CSS } from '@dnd-kit/utilities';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 import StockLogo from '@/components/stocks/StockLogo';
+import { useTitle } from '@/hooks/useTitle';
 
 type Tab = 'overview' | 'earnings' | 'news';
 
@@ -208,6 +209,7 @@ export default function WatchlistDetailPage({
 }) {
   const { id } = use(params);
   const { data: watchlist, isLoading } = useWatchlist(id);
+  useTitle(watchlist?.name ?? 'Watchlist');
   const addItem = useAddWatchlistItem();
   const removeItem = useRemoveWatchlistItem();
   const reorderItems = useReorderWatchlistItems();

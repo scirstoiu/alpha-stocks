@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useWatchlists, useCreateWatchlist, useDeleteWatchlist } from '@alpha-stocks/core';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
+import { useTitle } from '@/hooks/useTitle';
 
 export default function WatchlistsPage() {
+  useTitle('Watchlists');
   const { data: watchlists, isLoading } = useWatchlists();
   const createWatchlist = useCreateWatchlist();
   const deleteWatchlist = useDeleteWatchlist();

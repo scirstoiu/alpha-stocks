@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
+import { useTitle } from '@/hooks/useTitle';
 import {
   useEarningsCalendar,
   useWatchlists,
@@ -24,6 +25,7 @@ function getDateRange() {
 }
 
 export default function EarningsPage() {
+  useTitle('Earnings');
   const { from, to } = useMemo(getDateRange, []);
   const { data: earnings, isLoading } = useEarningsCalendar(from, to);
   const { data: watchlists } = useWatchlists();

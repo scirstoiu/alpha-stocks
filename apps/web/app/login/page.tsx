@@ -1,8 +1,10 @@
 'use client';
 
 import { useAuth } from '@alpha-stocks/core';
+import { useTitle } from '@/hooks/useTitle';
 
 export default function LoginPage() {
+  useTitle('Login');
   const { signInWithGoogle, isLoading } = useAuth();
 
   return (

@@ -128,7 +128,7 @@ export default function StockChart({ symbol }: { symbol: string }) {
           <button
             key={r}
             onClick={() => setRange(r)}
-            className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+            className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
               range === r
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -159,8 +159,8 @@ export default function StockChart({ symbol }: { symbol: string }) {
                 isActive ? 'bg-gray-50' : 'hover:bg-gray-50'
               }`}
             >
-              <div className="text-xs text-gray-500 font-medium">{RANGE_LABELS[r]}</div>
-              <div className={`text-xs font-semibold mt-0.5 ${
+              <div className="text-sm text-gray-500 font-medium">{RANGE_LABELS[r]}</div>
+              <div className={`text-sm font-semibold mt-0.5 ${
                 change == null
                   ? 'text-gray-400'
                   : change >= 0

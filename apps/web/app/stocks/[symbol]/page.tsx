@@ -5,6 +5,7 @@ import QuoteDisplay from '@/components/stocks/QuoteDisplay';
 import StockChart from '@/components/stocks/StockChart';
 import StockFinancials from '@/components/stocks/StockFinancials';
 import StockNews from '@/components/stocks/StockNews';
+import { useTitle } from '@/hooks/useTitle';
 
 type Tab = 'overview' | 'financials' | 'news';
 
@@ -25,6 +26,7 @@ export default function StockDetailPage({
 }) {
   const { symbol } = use(params);
   const upperSymbol = decodeURIComponent(symbol).toUpperCase();
+  useTitle(`${upperSymbol} stock`);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   if (isCurrency(upperSymbol)) {

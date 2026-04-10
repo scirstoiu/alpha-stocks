@@ -38,10 +38,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
+import { useTitle } from '@/hooks/useTitle';
 
 type PageTab = 'overview' | 'stats';
 
 export default function PortfoliosPage() {
+  useTitle('Portfolios');
   const { data: portfolios, isLoading } = usePortfolios();
   const createPortfolio = useCreatePortfolio();
   const reorderPortfolios = useReorderPortfolios();

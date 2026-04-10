@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTitle } from '@/hooks/useTitle';
 import Link from 'next/link';
 import StockLogo from '@/components/stocks/StockLogo';
 import Card from '@/components/ui/Card';
@@ -316,6 +317,7 @@ function timeAgo(ts: number): string {
 // --- Dashboard ---
 
 export default function Dashboard() {
+  useTitle('Home');
   return (
     <div>
       <MarketIndices />

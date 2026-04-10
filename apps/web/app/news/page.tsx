@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useNews, type NewsItem } from '@alpha-stocks/core';
+import { useTitle } from '@/hooks/useTitle';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 
@@ -56,6 +57,7 @@ function NewsCard({ item }: { item: NewsItem }) {
 }
 
 export default function NewsPage() {
+  useTitle('News');
   const [filter, setFilter] = useState('');
   const { data: news, isLoading } = useNews(filter || undefined);
 

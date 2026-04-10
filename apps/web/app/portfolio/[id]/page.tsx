@@ -27,6 +27,7 @@ import Modal from '@/components/ui/Modal';
 import Skeleton from '@/components/ui/Skeleton';
 import StockLogo from '@/components/stocks/StockLogo';
 import ImportTransactionsModal from '@/components/portfolio/ImportTransactionsModal';
+import { useTitle } from '@/hooks/useTitle';
 
 type Tab = 'positions' | 'transactions' | 'stats';
 
@@ -43,6 +44,7 @@ export default function PortfolioDetailPage({
   const { data: portfolio, isLoading: loadingPortfolio } = usePortfolio(id);
   const { data: portfolios } = usePortfolios();
   const { data: transactions, isLoading: loadingTx } = useTransactions(id);
+  useTitle(portfolio?.name ?? 'Portfolio');
   const addTransaction = useAddTransaction();
   const deleteTransaction = useDeleteTransaction();
   const renamePortfolio = useRenamePortfolio();
