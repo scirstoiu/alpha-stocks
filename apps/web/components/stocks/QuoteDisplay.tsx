@@ -10,7 +10,7 @@ function RangeBar({ low, high, current, label }: { low: number; high: number; cu
     <div>
       <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium w-16 text-right tabular-nums">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className="text-xs font-medium w-16 tabular-nums">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         <div className="flex-1 relative h-1 bg-gray-200 rounded-full">
           <div
             className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-gray-500 rounded-full border border-white shadow-sm"
@@ -106,46 +106,65 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
       {!compact && (
         <div className="space-y-4">
-          {/* Analyst recommendation + price target */}
-          {quote.targetMeanPrice != null && (
-            <div className="flex items-center gap-3 flex-wrap">
-              {quote.recommendationKey && (
-                <span className={`px-2.5 py-1 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
-                  {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
-                </span>
+          {/* Top row: Ranges (left half) + Key info (right half) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Left: Ranges stacked */}
+            <div className="space-y-2">
+              {quote.low > 0 && quote.high > 0 && (
+                <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
               )}
-              <div className="text-sm">
-                <span className="text-gray-500">Price Target </span>
-                <span className="font-bold text-base">{formatCurrency(quote.targetMeanPrice)}</span>
-                {quote.targetLowPrice != null && quote.targetHighPrice != null && (
-                  <span className="text-gray-400 text-xs ml-1.5">({formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)})</span>
+              {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
+                <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
+              )}
+            </div>
+
+            {/* Right: Analyst + quick stats */}
+            <div className="space-y-3">
+              {quote.targetMeanPrice != null && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {quote.recommendationKey && (
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
+                      {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
+                    </span>
+                  )}
+                  <div className="text-sm">
+                    <span className="text-gray-500">Target </span>
+                    <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
+                    {quote.targetLowPrice != null && quote.targetHighPrice != null && (
+                      <span className="text-gray-400 text-xs ml-1">({formatCurrency(quote.targetLowPrice)}–{formatCurrency(quote.targetHighPrice)})</span>
+                    )}
+                  </div>
+                  {quote.numberOfAnalystOpinions != null && (
+                    <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
+                  )}
+                  {(() => {
+                    const upside = quote.targetMeanPrice && quote.price > 0
+                      ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
+                      : null;
+                    if (upside == null) return null;
+                    return (
+                      <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
+                        {upside >= 0 ? '+' : ''}{upside.toFixed(1)}%
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {quote.priceToBook != null && (
+                  <div>
+                    <span className="text-gray-500">Price/Book</span>
+                    <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+                  </div>
+                )}
+                {quote.earningsTimestamp != null && (
+                  <div>
+                    <span className="text-gray-500">Next Earnings</span>
+                    <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  </div>
                 )}
               </div>
-              {quote.numberOfAnalystOpinions != null && (
-                <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{quote.numberOfAnalystOpinions} analysts</span>
-              )}
-              {(() => {
-                const upside = quote.targetMeanPrice && quote.price > 0
-                  ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
-                  : null;
-                if (upside == null) return null;
-                return (
-                  <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
-                    {upside >= 0 ? '+' : ''}{upside.toFixed(1)}% upside
-                  </span>
-                );
-              })()}
             </div>
-          )}
-
-          {/* Ranges side by side */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-            {quote.low > 0 && quote.high > 0 && (
-              <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
-            )}
-            {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
-              <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
-            )}
           </div>
 
           {/* Key Stats — 4 column grid */}
@@ -192,12 +211,6 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                 <p className="font-medium">{quote.forwardPE.toFixed(2)}</p>
               </div>
             )}
-            {quote.priceToBook != null && (
-              <div>
-                <span className="text-gray-500">Price/Book</span>
-                <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
-              </div>
-            )}
             {quote.beta != null && (
               <div>
                 <span className="text-gray-500">Beta</span>
@@ -208,12 +221,6 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
               <div>
                 <span className="text-gray-500">Dividend Yield</span>
                 <p className="font-medium">{(quote.dividendYield * 100).toFixed(2)}%</p>
-              </div>
-            )}
-            {quote.earningsTimestamp != null && (
-              <div>
-                <span className="text-gray-500">Next Earnings</span>
-                <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
               </div>
             )}
             {quote.fullTimeEmployees != null && (
