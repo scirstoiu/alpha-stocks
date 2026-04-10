@@ -232,13 +232,12 @@ function UpcomingEarnings() {
   );
 }
 
-// --- My News (from watchlist + portfolio symbols) ---
+// --- My News (general market + portfolio/watchlist related) ---
 
 function MyNews() {
   const { data: watchlists } = useWatchlists();
   const { data: portfolios } = usePortfolios();
 
-  // Collect first portfolio's symbols
   const firstPortfolioId = portfolios?.[0]?.id || '';
   const { data: transactions } = useTransactions(firstPortfolioId);
 
@@ -249,51 +248,58 @@ function MyNews() {
     return [...s];
   }, [watchlists, transactions]);
 
-  // Fetch news for the first symbol that has coverage (Finnhub returns company news per symbol)
-  const newsSymbol = mySymbols[0];
-  const { data: news, isLoading } = useNews(newsSymbol);
+  // Fetch general news + news for top 3 symbols
+  const { data: generalNews, isLoading: loadingGeneral } = useNews();
+  const symbolsToFetch = useMemo(() => [...mySymbols].slice(0, 3), [mySymbols]);
+  const { data: news1 } = useNews(symbolsToFetch[0]);
+  const { data: news2 } = useNews(symbolsToFetch[1]);
+  const { data: news3 } = useNews(symbolsToFetch[2]);
 
-  // Also get general news as fallback
-  const { data: generalNews } = useNews();
-
-  // Merge: prefer symbol-specific, pad with general, dedup by id
   const items = useMemo(() => {
     const seen = new Set<string>();
     const merged = [];
-    for (const n of [...(news || []), ...(generalNews || [])]) {
-      if (seen.has(n.id)) continue;
-      seen.add(n.id);
+    // Interleave: symbol-specific first, then general
+    for (const n of [...(news1 || []), ...(news2 || []), ...(news3 || []), ...(generalNews || [])]) {
+      const key = n.headline.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
+      if (seen.has(key)) continue;
+      seen.add(key);
       merged.push(n);
     }
-    return merged.slice(0, 8);
-  }, [news, generalNews]);
+    return merged.sort((a, b) => b.publishedAt - a.publishedAt).slice(0, 15);
+  }, [news1, news2, news3, generalNews]);
 
-  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  if (loadingGeneral) return <Skeleton className="h-96 w-full" />;
 
   if (items.length === 0) {
     return (
       <Card>
-        <h3 className="text-sm font-medium text-gray-500 mb-2">News</h3>
-        <p className="text-gray-400 text-sm">No news available.</p>
+        <p className="text-gray-400 text-sm py-4">No news available.</p>
       </Card>
     );
   }
 
   return (
     <Card className="overflow-hidden p-0">
-      <h3 className="px-4 py-2 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50">
-        News
-        {newsSymbol && <span className="text-gray-400 ml-1">for your stocks</span>}
-      </h3>
+      <h3 className="px-4 py-2.5 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50">News</h3>
       <div className="divide-y divide-gray-100">
         {items.map((n) => (
-          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="block px-4 py-3 hover:bg-gray-50">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium text-gray-500">{n.source}</span>
-              <span className="text-xs text-gray-400">&middot;</span>
-              <span className="text-xs text-gray-400">{timeAgo(n.publishedAt)}</span>
+          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium leading-snug line-clamp-2">{n.headline}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-xs font-medium text-primary">{n.source}</span>
+                <span className="text-xs text-gray-300">&middot;</span>
+                <span className="text-xs text-gray-400">{timeAgo(n.publishedAt)}</span>
+                {n.relatedSymbols && n.relatedSymbols.length > 0 && (
+                  <>
+                    <span className="text-xs text-gray-300">&middot;</span>
+                    {n.relatedSymbols.slice(0, 3).map((s) => (
+                      <span key={s} className="text-xs text-gray-400">{s}</span>
+                    ))}
+                  </>
+                )}
+              </div>
             </div>
-            <p className="text-sm font-medium line-clamp-2 leading-snug">{n.headline}</p>
           </a>
         ))}
       </div>
@@ -322,20 +328,21 @@ export default function Dashboard() {
     <div>
       <MarketIndices />
 
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
+      <div className="grid gap-6 md:grid-cols-[1fr_340px] mb-6">
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Watchlist</h2>
-          <WatchlistHighlights />
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">News</h2>
+          <MyNews />
         </div>
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Earnings</h2>
-          <UpcomingEarnings />
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Watchlist</h2>
+            <WatchlistHighlights />
+          </div>
+          <div>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Earnings</h2>
+            <UpcomingEarnings />
+          </div>
         </div>
-      </div>
-
-      <div>
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">News</h2>
-        <MyNews />
       </div>
     </div>
   );
