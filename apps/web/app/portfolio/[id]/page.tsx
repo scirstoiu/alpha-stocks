@@ -30,6 +30,10 @@ import ImportTransactionsModal from '@/components/portfolio/ImportTransactionsMo
 
 type Tab = 'positions' | 'transactions' | 'stats';
 
+// Persist sort state across portfolio switches (survives component remount)
+let persistedSortColumn: string | null = null;
+let persistedSortDirection: 'asc' | 'desc' = 'desc';
+
 export default function PortfolioDetailPage({
   params,
 }: {
@@ -49,8 +53,16 @@ export default function PortfolioDetailPage({
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('positions');
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortColumn, setSortColumnState] = useState<string | null>(persistedSortColumn);
+  const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(persistedSortDirection);
+  const setSortColumn = (col: string | null) => { persistedSortColumn = col; setSortColumnState(col); };
+  const setSortDirection = (dir: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => {
+    setSortDirectionState((prev) => {
+      const next = typeof dir === 'function' ? dir(prev) : dir;
+      persistedSortDirection = next;
+      return next;
+    });
+  };
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
