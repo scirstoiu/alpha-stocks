@@ -223,10 +223,18 @@ function UpcomingEarnings() {
     if (!quotes) return [];
     const now = Date.now();
     const cutoff = now + 30 * 86400000;
+    const seen = new Set<string>();
     return quotes
       .filter((q) => q.earningsTimestamp != null && q.earningsTimestamp > now && q.earningsTimestamp < cutoff)
-      .map((q) => ({ symbol: q.symbol, date: new Date(q.earningsTimestamp!).toISOString().split('T')[0] }))
+      .map((q) => ({ symbol: q.symbol, date: new Date(q.earningsTimestamp!).toISOString().split('T')[0], name: q.name }))
       .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((e) => {
+        // Deduplicate by name (e.g. GOOG and GOOGL are both "Alphabet Inc.")
+        const key = e.name.toLowerCase().replace(/[^a-z]/g, '');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
       .slice(0, 10);
   }, [quotes]);
 
