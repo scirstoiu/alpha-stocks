@@ -83,6 +83,13 @@ export function createYahooProvider(): IStockProvider {
         postMarketPrice: (result as Record<string, unknown>).postMarketPrice as number | undefined,
         postMarketChange: (result as Record<string, unknown>).postMarketChange as number | undefined,
         postMarketChangePercent: (result as Record<string, unknown>).postMarketChangePercent as number | undefined,
+        fiftyTwoWeekHigh: result.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: result.fiftyTwoWeekLow,
+        trailingPE: result.trailingPE,
+        epsTrailingTwelveMonths: result.epsTrailingTwelveMonths,
+        priceToBook: result.priceToBook,
+        earningsTimestamp: result.earningsTimestamp ? new Date(result.earningsTimestamp as unknown as string | number).getTime() : undefined,
+        fullTimeEmployees: (result as Record<string, unknown>).fullTimeEmployees as number | undefined,
         updatedAt: Date.now(),
       };
     },

@@ -18,6 +18,13 @@ export interface Quote {
   postMarketPrice?: number;
   postMarketChange?: number;
   postMarketChangePercent?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  trailingPE?: number;
+  epsTrailingTwelveMonths?: number;
+  priceToBook?: number;
+  earningsTimestamp?: number;
+  fullTimeEmployees?: number;
   updatedAt: number;
 }
 

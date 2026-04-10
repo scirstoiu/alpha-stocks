@@ -4,6 +4,26 @@ import { useStockQuote, formatCurrency, formatPercent, formatCompactNumber } fro
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
 
+function RangeBar({ low, high, current, label }: { low: number; high: number; current: number; label: string }) {
+  const pct = high > low ? ((current - low) / (high - low)) * 100 : 50;
+  const isForex = false; // caller handles formatting
+  return (
+    <div>
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold w-20 text-right">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <div className="flex-1 relative h-1.5 bg-gray-200 rounded-full">
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-gray-500 rounded-full border-2 border-white shadow"
+            style={{ left: `${Math.min(Math.max(pct, 0), 100)}%`, transform: 'translate(-50%, -50%)' }}
+          />
+        </div>
+        <span className="text-sm font-semibold w-20">{high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol: string; compact?: boolean; detailsOnly?: boolean }) {
   const { data: quote, isLoading, error } = useStockQuote(symbol);
 
@@ -70,33 +90,68 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
       )}
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
       {!compact && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-          <div>
-            <span className="text-gray-500">Open</span>
-            <p className="font-medium">{fmt(quote.open)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">High</span>
-            <p className="font-medium">{fmt(quote.high)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Low</span>
-            <p className="font-medium">{fmt(quote.low)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Volume</span>
-            <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Prev Close</span>
-            <p className="font-medium">{fmt(quote.previousClose)}</p>
-          </div>
-          {quote.marketCap && (
-            <div>
-              <span className="text-gray-500">Market Cap</span>
-              <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
+        <div className="space-y-5">
+          {/* Price Ranges */}
+          {quote.low > 0 && quote.high > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+              {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
+                <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
+              )}
             </div>
           )}
+
+          {/* Key Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <span className="text-gray-500">Open</span>
+              <p className="font-medium">{fmt(quote.open)}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Prev Close</span>
+              <p className="font-medium">{fmt(quote.previousClose)}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Volume</span>
+              <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
+            </div>
+            {quote.marketCap != null && (
+              <div>
+                <span className="text-gray-500">Market Cap</span>
+                <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
+              </div>
+            )}
+            {quote.epsTrailingTwelveMonths != null && (
+              <div>
+                <span className="text-gray-500">EPS (TTM)</span>
+                <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.trailingPE != null && (
+              <div>
+                <span className="text-gray-500">P/E Ratio</span>
+                <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.priceToBook != null && (
+              <div>
+                <span className="text-gray-500">Price/Book</span>
+                <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.earningsTimestamp != null && (
+              <div>
+                <span className="text-gray-500">Next Earnings</span>
+                <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              </div>
+            )}
+            {quote.fullTimeEmployees != null && (
+              <div>
+                <span className="text-gray-500">Employees</span>
+                <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </Card>
