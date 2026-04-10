@@ -12,7 +12,6 @@ import {
   useTransactions,
   useAllTransactions,
   useStockQuotes,
-  useEarningsCalendar,
   useNews,
   formatCurrency,
   formatPercent,
@@ -201,9 +200,6 @@ function WatchlistHighlights() {
 // --- Upcoming Earnings ---
 
 function UpcomingEarnings() {
-  const from = new Date().toISOString().split('T')[0];
-  const to = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-  const { data: earnings, isLoading } = useEarningsCalendar(from, to);
   const { data: watchlists } = useWatchlists();
   const { data: portfolios } = usePortfolios();
   const portfolioIds = useMemo(() => (portfolios || []).map((p) => p.id), [portfolios]);
@@ -217,13 +213,22 @@ function UpcomingEarnings() {
         for (const t of result.data) s.add(t.symbol);
       }
     }
-    return s;
+    return [...s];
   }, [watchlists, txResults]);
 
+  const { data: quotes, isLoading } = useStockQuotes(mySymbols);
+
+  // Extract earnings dates from quote data (earningsTimestamp) — within next 30 days
   const myEarnings = useMemo(() => {
-    if (!earnings) return [];
-    return earnings.filter((e) => mySymbols.has(e.symbol)).slice(0, 10);
-  }, [earnings, mySymbols]);
+    if (!quotes) return [];
+    const now = Date.now();
+    const cutoff = now + 30 * 86400000;
+    return quotes
+      .filter((q) => q.earningsTimestamp != null && q.earningsTimestamp > now && q.earningsTimestamp < cutoff)
+      .map((q) => ({ symbol: q.symbol, date: new Date(q.earningsTimestamp!).toISOString().split('T')[0] }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 10);
+  }, [quotes]);
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
 
@@ -231,7 +236,7 @@ function UpcomingEarnings() {
     return (
       <Card>
         <h3 className="text-sm font-medium text-gray-500 mb-2">Upcoming Earnings</h3>
-        <p className="text-gray-400 text-sm">No earnings this month for your watchlist stocks.</p>
+        <p className="text-gray-400 text-sm">No earnings this month for your stocks.</p>
       </Card>
     );
   }
@@ -240,8 +245,8 @@ function UpcomingEarnings() {
     <Card className="overflow-hidden p-0">
       <h3 className="px-4 py-2 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-50">Upcoming Earnings</h3>
       <div className="divide-y divide-gray-100">
-        {myEarnings.map((e, i) => (
-          <Link key={`${e.symbol}-${i}`} href={`/stocks/${e.symbol}`} target="_blank" className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
+        {myEarnings.map((e) => (
+          <Link key={e.symbol} href={`/stocks/${e.symbol}`} target="_blank" className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
             <div className="flex items-center gap-2">
               <StockLogo symbol={e.symbol} size={20} />
               <span className="font-medium text-sm">{e.symbol}</span>
