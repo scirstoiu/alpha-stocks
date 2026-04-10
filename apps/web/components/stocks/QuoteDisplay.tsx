@@ -106,9 +106,9 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
       {!compact && (
         <div className="space-y-4">
-          {/* Top row: Ranges (left half) + Key info (right half) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Left: Ranges stacked */}
+          {/* Top row: 3 columns — Ranges | Analyst | Quick stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {/* Col 1: Ranges stacked */}
             <div className="space-y-2">
               {quote.low > 0 && quote.high > 0 && (
                 <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
@@ -118,24 +118,14 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
               )}
             </div>
 
-            {/* Right: Analyst + quick stats */}
-            <div className="space-y-3">
-              {quote.targetMeanPrice != null && (
+            {/* Col 2: Analyst target */}
+            {quote.targetMeanPrice != null && (
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   {quote.recommendationKey && (
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
                       {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
                     </span>
-                  )}
-                  <div className="text-sm">
-                    <span className="text-gray-500">Target </span>
-                    <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
-                    {quote.targetLowPrice != null && quote.targetHighPrice != null && (
-                      <span className="text-gray-400 text-xs ml-1">({formatCurrency(quote.targetLowPrice)}–{formatCurrency(quote.targetHighPrice)})</span>
-                    )}
-                  </div>
-                  {quote.numberOfAnalystOpinions != null && (
-                    <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
                   )}
                   {(() => {
                     const upside = quote.targetMeanPrice && quote.price > 0
@@ -149,21 +139,39 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                     );
                   })()}
                 </div>
-              )}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {quote.priceToBook != null && (
-                  <div>
-                    <span className="text-gray-500">Price/Book</span>
-                    <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
-                  </div>
+                <div className="text-sm">
+                  <span className="text-gray-500">Target </span>
+                  <span className="font-bold">{formatCurrency(quote.targetMeanPrice)}</span>
+                </div>
+                {quote.targetLowPrice != null && quote.targetHighPrice != null && (
+                  <div className="text-xs text-gray-400">{formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)}</div>
                 )}
-                {quote.earningsTimestamp != null && (
-                  <div>
-                    <span className="text-gray-500">Next Earnings</span>
-                    <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                  </div>
+                {quote.numberOfAnalystOpinions != null && (
+                  <div className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</div>
                 )}
               </div>
+            )}
+
+            {/* Col 3: Quick stats */}
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              {quote.priceToBook != null && (
+                <div>
+                  <span className="text-gray-500">Price/Book</span>
+                  <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+                </div>
+              )}
+              {quote.earningsTimestamp != null && (
+                <div>
+                  <span className="text-gray-500">Next Earnings</span>
+                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              )}
+              {quote.beta != null && (
+                <div>
+                  <span className="text-gray-500">Beta</span>
+                  <p className="font-medium">{quote.beta.toFixed(2)}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -209,12 +217,6 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
               <div>
                 <span className="text-gray-500">Forward P/E</span>
                 <p className="font-medium">{quote.forwardPE.toFixed(2)}</p>
-              </div>
-            )}
-            {quote.beta != null && (
-              <div>
-                <span className="text-gray-500">Beta</span>
-                <p className="font-medium">{quote.beta.toFixed(2)}</p>
               </div>
             )}
             {quote.dividendYield != null && quote.dividendYield > 0 && (
