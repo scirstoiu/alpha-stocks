@@ -188,7 +188,7 @@ function WatchlistHighlights() {
 
 function UpcomingEarnings() {
   const from = new Date().toISOString().split('T')[0];
-  const to = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  const to = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
   const { data: earnings, isLoading } = useEarningsCalendar(from, to);
   const { data: watchlists } = useWatchlists();
 
@@ -200,7 +200,7 @@ function UpcomingEarnings() {
 
   const myEarnings = useMemo(() => {
     if (!earnings) return [];
-    return earnings.filter((e) => mySymbols.has(e.symbol)).slice(0, 5);
+    return earnings.filter((e) => mySymbols.has(e.symbol)).slice(0, 10);
   }, [earnings, mySymbols]);
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
@@ -209,7 +209,7 @@ function UpcomingEarnings() {
     return (
       <Card>
         <h3 className="text-sm font-medium text-gray-500 mb-2">Upcoming Earnings</h3>
-        <p className="text-gray-400 text-sm">No earnings this week for your watchlist stocks.</p>
+        <p className="text-gray-400 text-sm">No earnings this month for your watchlist stocks.</p>
       </Card>
     );
   }
@@ -241,18 +241,38 @@ function MyNews() {
   const firstPortfolioId = portfolios?.[0]?.id || '';
   const { data: transactions } = useTransactions(firstPortfolioId);
 
-  const mySymbols = useMemo(() => {
+  // Collect all symbols from watchlists + portfolio
+  const allMySymbols = useMemo(() => {
     const s = new Set<string>();
     watchlists?.forEach((wl) => wl.items?.forEach((i) => s.add(i.symbol)));
     transactions?.forEach((t) => s.add(t.symbol));
     return [...s];
   }, [watchlists, transactions]);
 
-  // Fetch news for top 3 of my symbols only
-  const symbolsToFetch = useMemo(() => [...mySymbols].slice(0, 3), [mySymbols]);
-  const { data: news1, isLoading } = useNews(symbolsToFetch[0]);
-  const { data: news2 } = useNews(symbolsToFetch[1]);
-  const { data: news3 } = useNews(symbolsToFetch[2]);
+  // Get quotes to sort by portfolio value/weight
+  const { data: allQuotes } = useStockQuotes(allMySymbols);
+
+  // Sort symbols by portfolio value (shares * price), highest first
+  const symbolsByWeight = useMemo(() => {
+    if (!allQuotes || !transactions) return allMySymbols.slice(0, 3);
+    const holdings = new Map<string, number>();
+    for (const tx of transactions) {
+      const cur = holdings.get(tx.symbol) || 0;
+      if (tx.type === 'buy') holdings.set(tx.symbol, cur + tx.shares);
+      else if (tx.type === 'sell') holdings.set(tx.symbol, cur - tx.shares);
+    }
+    const quoteMap = new Map(allQuotes.map((q) => [q.symbol, q]));
+    return [...allMySymbols].sort((a, b) => {
+      const va = (holdings.get(a) || 0) * (quoteMap.get(a)?.price || 0);
+      const vb = (holdings.get(b) || 0) * (quoteMap.get(b)?.price || 0);
+      return vb - va;
+    }).slice(0, 3);
+  }, [allMySymbols, allQuotes, transactions]);
+
+  // Fetch news for top 3 symbols by weight
+  const { data: news1, isLoading } = useNews(symbolsByWeight[0]);
+  const { data: news2 } = useNews(symbolsByWeight[1]);
+  const { data: news3 } = useNews(symbolsByWeight[2]);
 
   const items = useMemo(() => {
     const seen = new Set<string>();
@@ -263,7 +283,7 @@ function MyNews() {
       seen.add(key);
       merged.push(n);
     }
-    return merged.sort((a, b) => b.publishedAt - a.publishedAt);
+    return merged.sort((a, b) => b.publishedAt - a.publishedAt).slice(0, 15);
   }, [news1, news2, news3]);
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
