@@ -106,7 +106,7 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
       {!compact && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm">
-          {/* Col 1: Ranges + Open/Prev Close */}
+          {/* Col 1: Ranges + Open/Prev Close + Earnings/Employees */}
           <div className="space-y-3">
             {quote.low > 0 && quote.high > 0 && (
               <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
@@ -123,10 +123,22 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                 <span className="text-gray-500">Prev Close</span>
                 <p className="font-medium">{fmt(quote.previousClose)}</p>
               </div>
+              {quote.earningsTimestamp != null && (
+                <div>
+                  <span className="text-gray-500">Next Earnings</span>
+                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              )}
+              {quote.fullTimeEmployees != null && (
+                <div>
+                  <span className="text-gray-500">Employees</span>
+                  <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Col 2: Analyst + Target + Valuation */}
+          {/* Col 2: Analyst + Target + P/E */}
           <div className="space-y-3">
             {quote.targetMeanPrice != null && (
               <div>
@@ -173,10 +185,10 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                   <p className="font-medium">{quote.forwardPE.toFixed(2)}</p>
                 </div>
               )}
-              {quote.earningsTimestamp != null && (
+              {quote.epsTrailingTwelveMonths != null && (
                 <div>
-                  <span className="text-gray-500">Next Earnings</span>
-                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  <span className="text-gray-500">EPS (TTM)</span>
+                  <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
                 </div>
               )}
               {quote.priceToBook != null && (
@@ -188,7 +200,7 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
             </div>
           </div>
 
-          {/* Col 3: Trading + Info */}
+          {/* Col 3: Market/Trading */}
           <div className="grid grid-cols-2 gap-3 content-start">
             {quote.marketCap != null && (
               <div>
@@ -206,12 +218,6 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
                 <p className="font-medium">{formatCompactNumber(quote.averageDailyVolume3Month)}</p>
               </div>
             )}
-            {quote.epsTrailingTwelveMonths != null && (
-              <div>
-                <span className="text-gray-500">EPS (TTM)</span>
-                <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
-              </div>
-            )}
             {quote.beta != null && (
               <div>
                 <span className="text-gray-500">Beta</span>
@@ -222,12 +228,6 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
               <div>
                 <span className="text-gray-500">Dividend Yield</span>
                 <p className="font-medium">{(quote.dividendYield * 100).toFixed(2)}%</p>
-              </div>
-            )}
-            {quote.fullTimeEmployees != null && (
-              <div>
-                <span className="text-gray-500">Employees</span>
-                <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
               </div>
             )}
           </div>
