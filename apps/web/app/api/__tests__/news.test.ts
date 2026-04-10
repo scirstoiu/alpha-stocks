@@ -42,8 +42,8 @@ describe('GET /api/news', () => {
   });
 
   it('returns merged company news from both sources', async () => {
-    const finnhubNews = [{ id: 'f1', headline: 'AAPL earnings beat', source: 'Finnhub', publishedAt: 1000 }];
-    const yahooNews = [{ id: 'yahoo-y1', headline: 'Apple reports Q4', source: 'Yahoo', publishedAt: 2000 }];
+    const finnhubNews = [{ id: 'f1', headline: 'AAPL earnings beat estimates', source: 'Finnhub', publishedAt: 1000 }];
+    const yahooNews = [{ id: 'yahoo-y1', headline: 'AAPL reports strong Q4', source: 'Yahoo', publishedAt: 2000 }];
     mockGetCompanyNews.mockResolvedValue(finnhubNews);
     mockGetYahooNews.mockResolvedValue(yahooNews);
 
@@ -66,9 +66,21 @@ describe('GET /api/news', () => {
     expect(json).toHaveLength(1);
   });
 
+  it('filters out unrelated articles', async () => {
+    const finnhubNews = [{ id: 'f1', headline: 'AMD beats earnings', source: 'Finnhub', publishedAt: 2000, summary: '' }];
+    const yahooNews = [{ id: 'yahoo-y1', headline: 'Unrelated pharma news', source: 'Yahoo', publishedAt: 1000, summary: '' }];
+    mockGetCompanyNews.mockResolvedValue(finnhubNews);
+    mockGetYahooNews.mockResolvedValue(yahooNews);
+
+    const res = await GET(makeRequest({ symbol: 'amd' }));
+    const json = await res.json();
+    expect(json).toHaveLength(1);
+    expect(json[0].headline).toContain('AMD');
+  });
+
   it('handles one source failing gracefully', async () => {
     mockGetCompanyNews.mockRejectedValue(new Error('Finnhub down'));
-    mockGetYahooNews.mockResolvedValue([{ id: 'y1', headline: 'News from Yahoo', source: 'Yahoo', publishedAt: 1000 }]);
+    mockGetYahooNews.mockResolvedValue([{ id: 'y1', headline: 'AAPL news from Yahoo', source: 'Yahoo', publishedAt: 1000 }]);
 
     const res = await GET(makeRequest({ symbol: 'aapl' }));
     expect(res.status).toBe(200);

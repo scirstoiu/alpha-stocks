@@ -58,7 +58,14 @@ export async function GET(request: NextRequest) {
         ...(yahooNews.status === 'fulfilled' ? yahooNews.value : []),
       ];
 
-      const merged = deduplicateNews(all).sort((a, b) => b.publishedAt - a.publishedAt);
+      // Filter out articles unrelated to the symbol
+      const relevant = all.filter((item) => {
+        const text = `${item.headline} ${item.summary}`.toUpperCase();
+        const tickers = item.relatedSymbols?.map((s) => s.toUpperCase()) || [];
+        return text.includes(upper) || tickers.includes(upper);
+      });
+
+      const merged = deduplicateNews(relevant).sort((a, b) => b.publishedAt - a.publishedAt);
       setCache(cacheKey, merged);
       return NextResponse.json(merged);
     }
