@@ -91,66 +91,71 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
       {!compact && (
         <div className="space-y-5">
-          {/* Price Ranges */}
-          {quote.low > 0 && quote.high > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+          {/* Ranges (left) + Key Metrics (right) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Left: Ranges + basic stats */}
+            <div className="space-y-4">
+              {quote.low > 0 && quote.high > 0 && (
+                <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+              )}
               {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
                 <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
               )}
+              <div className="grid grid-cols-2 gap-3 text-sm pt-1">
+                <div>
+                  <span className="text-gray-500">Open</span>
+                  <p className="font-medium">{fmt(quote.open)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Prev Close</span>
+                  <p className="font-medium">{fmt(quote.previousClose)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Volume</span>
+                  <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
+                </div>
+                {quote.marketCap != null && (
+                  <div>
+                    <span className="text-gray-500">Market Cap</span>
+                    <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Key Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <div>
-              <span className="text-gray-500">Open</span>
-              <p className="font-medium">{fmt(quote.open)}</p>
+            {/* Right: Valuation + info metrics */}
+            <div className="grid grid-cols-2 gap-3 text-sm content-start">
+              {quote.epsTrailingTwelveMonths != null && (
+                <div>
+                  <span className="text-gray-500">EPS (TTM)</span>
+                  <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
+                </div>
+              )}
+              {quote.trailingPE != null && (
+                <div>
+                  <span className="text-gray-500">P/E Ratio</span>
+                  <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
+                </div>
+              )}
+              {quote.priceToBook != null && (
+                <div>
+                  <span className="text-gray-500">Price/Book</span>
+                  <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+                </div>
+              )}
+              {quote.earningsTimestamp != null && (
+                <div>
+                  <span className="text-gray-500">Next Earnings</span>
+                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              )}
+              {quote.fullTimeEmployees != null && (
+                <div>
+                  <span className="text-gray-500">Employees</span>
+                  <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
+                </div>
+              )}
             </div>
-            <div>
-              <span className="text-gray-500">Prev Close</span>
-              <p className="font-medium">{fmt(quote.previousClose)}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Volume</span>
-              <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
-            </div>
-            {quote.marketCap != null && (
-              <div>
-                <span className="text-gray-500">Market Cap</span>
-                <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
-              </div>
-            )}
-            {quote.epsTrailingTwelveMonths != null && (
-              <div>
-                <span className="text-gray-500">EPS (TTM)</span>
-                <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
-              </div>
-            )}
-            {quote.trailingPE != null && (
-              <div>
-                <span className="text-gray-500">P/E Ratio</span>
-                <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
-              </div>
-            )}
-            {quote.priceToBook != null && (
-              <div>
-                <span className="text-gray-500">Price/Book</span>
-                <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
-              </div>
-            )}
-            {quote.earningsTimestamp != null && (
-              <div>
-                <span className="text-gray-500">Next Earnings</span>
-                <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-              </div>
-            )}
-            {quote.fullTimeEmployees != null && (
-              <div>
-                <span className="text-gray-500">Employees</span>
-                <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
-              </div>
-            )}
           </div>
         </div>
       )}
