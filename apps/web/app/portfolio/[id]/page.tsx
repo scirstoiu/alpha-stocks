@@ -30,9 +30,8 @@ import ImportTransactionsModal from '@/components/portfolio/ImportTransactionsMo
 
 type Tab = 'positions' | 'transactions' | 'stats';
 
-// Persist sort state across portfolio switches (survives component remount)
-let persistedSortColumn: string | null = null;
-let persistedSortDirection: 'asc' | 'desc' = 'desc';
+// Persist sort state per portfolio (survives component remount)
+const persistedSort = new Map<string, { column: string | null; direction: 'asc' | 'desc' }>();
 
 export default function PortfolioDetailPage({
   params,
@@ -53,13 +52,17 @@ export default function PortfolioDetailPage({
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('positions');
-  const [sortColumn, setSortColumnState] = useState<string | null>(persistedSortColumn);
-  const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(persistedSortDirection);
-  const setSortColumn = (col: string | null) => { persistedSortColumn = col; setSortColumnState(col); };
+  const saved = persistedSort.get(id);
+  const [sortColumn, setSortColumnState] = useState<string | null>(saved?.column ?? null);
+  const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(saved?.direction ?? 'desc');
+  const setSortColumn = (col: string | null) => {
+    persistedSort.set(id, { column: col, direction: persistedSort.get(id)?.direction ?? 'desc' });
+    setSortColumnState(col);
+  };
   const setSortDirection = (dir: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => {
     setSortDirectionState((prev) => {
       const next = typeof dir === 'function' ? dir(prev) : dir;
-      persistedSortDirection = next;
+      persistedSort.set(id, { column: persistedSort.get(id)?.column ?? null, direction: next });
       return next;
     });
   };
