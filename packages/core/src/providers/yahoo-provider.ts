@@ -108,6 +108,11 @@ export function createYahooProvider(): IStockProvider {
         numberOfAnalystOpinions: fdNum('numberOfAnalystOpinions'),
         recommendationKey: fd?.recommendationKey as string | undefined,
         recommendationMean: fdNum('recommendationMean'),
+        beta: result.beta,
+        dividendYield: result.dividendYield,
+        forwardPE: result.forwardPE,
+        epsForward: result.epsForward,
+        averageDailyVolume3Month: result.averageDailyVolume3Month,
         updatedAt: Date.now(),
       };
     },

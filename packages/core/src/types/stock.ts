@@ -31,6 +31,11 @@ export interface Quote {
   numberOfAnalystOpinions?: number;
   recommendationKey?: string;
   recommendationMean?: number;
+  beta?: number;
+  dividendYield?: number;
+  forwardPE?: number;
+  epsForward?: number;
+  averageDailyVolume3Month?: number;
   updatedAt: number;
 }
 

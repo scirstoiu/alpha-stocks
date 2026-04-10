@@ -105,95 +105,123 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
       )}
       {!detailsOnly && (quote.postMarketPrice ?? quote.preMarketPrice) == null && !compact && <div className="mb-3" />}
       {!compact && (
-        <div className="space-y-5">
-          {/* Ranges (left) + Key Metrics (right) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Left: Ranges + basic stats */}
-            <div className="space-y-3">
-              {quote.low > 0 && quote.high > 0 && (
-                <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+        <div className="space-y-4">
+          {/* Analyst recommendation + price target */}
+          {quote.targetMeanPrice != null && (
+            <div className="flex items-center gap-3 flex-wrap">
+              {quote.recommendationKey && (
+                <span className={`px-2.5 py-1 rounded text-xs font-bold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
+                  {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
+                </span>
               )}
-              {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
-                <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
-              )}
-              <div className="grid grid-cols-2 gap-3 text-sm pt-1">
-                <div>
-                  <span className="text-gray-500">Open</span>
-                  <p className="font-medium">{fmt(quote.open)}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500">Prev Close</span>
-                  <p className="font-medium">{fmt(quote.previousClose)}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500">Volume</span>
-                  <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
-                </div>
-                {quote.marketCap != null && (
-                  <div>
-                    <span className="text-gray-500">Market Cap</span>
-                    <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
-                  </div>
+              <div className="text-sm">
+                <span className="text-gray-500">Price Target </span>
+                <span className="font-bold text-base">{formatCurrency(quote.targetMeanPrice)}</span>
+                {quote.targetLowPrice != null && quote.targetHighPrice != null && (
+                  <span className="text-gray-400 text-xs ml-1.5">({formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)})</span>
                 )}
               </div>
-            </div>
-
-            {/* Right: Valuation + analyst */}
-            <div className="space-y-3">
-              {/* Analyst target + recommendation */}
-              {quote.targetMeanPrice != null && (
-                <div className="flex items-center gap-3 text-sm">
-                  {quote.recommendationKey && (
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
-                      {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
-                    </span>
-                  )}
-                  <div>
-                    <span className="text-gray-500">Price Target </span>
-                    <span className="font-semibold">{formatCurrency(quote.targetMeanPrice)}</span>
-                    {quote.targetLowPrice != null && quote.targetHighPrice != null && (
-                      <span className="text-gray-400 text-xs ml-1">({formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)})</span>
-                    )}
-                  </div>
-                  {quote.numberOfAnalystOpinions != null && (
-                    <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
-                  )}
-                </div>
+              {quote.numberOfAnalystOpinions != null && (
+                <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded">{quote.numberOfAnalystOpinions} analysts</span>
               )}
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {quote.epsTrailingTwelveMonths != null && (
-                  <div>
-                    <span className="text-gray-500">EPS (TTM)</span>
-                    <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
-                  </div>
-                )}
-                {quote.trailingPE != null && (
-                  <div>
-                    <span className="text-gray-500">P/E Ratio</span>
-                    <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
-                  </div>
-                )}
-                {quote.priceToBook != null && (
-                  <div>
-                    <span className="text-gray-500">Price/Book</span>
-                    <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
-                  </div>
-                )}
-                {quote.earningsTimestamp != null && (
-                  <div>
-                    <span className="text-gray-500">Next Earnings</span>
-                    <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                  </div>
-                )}
-                {quote.fullTimeEmployees != null && (
-                  <div>
-                    <span className="text-gray-500">Employees</span>
-                    <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
-                  </div>
-                )}
-              </div>
+              {(() => {
+                const upside = quote.targetMeanPrice && quote.price > 0
+                  ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
+                  : null;
+                if (upside == null) return null;
+                return (
+                  <span className={`text-xs font-semibold ${upside >= 0 ? 'text-gain' : 'text-loss'}`}>
+                    {upside >= 0 ? '+' : ''}{upside.toFixed(1)}% upside
+                  </span>
+                );
+              })()}
             </div>
+          )}
+
+          {/* Ranges side by side */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+            {quote.low > 0 && quote.high > 0 && (
+              <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+            )}
+            {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
+              <RangeBar low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
+            )}
+          </div>
+
+          {/* Key Stats — 4 column grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-sm border-t border-gray-100 pt-4">
+            <div>
+              <span className="text-gray-500">Open</span>
+              <p className="font-medium">{fmt(quote.open)}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Prev Close</span>
+              <p className="font-medium">{fmt(quote.previousClose)}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Volume</span>
+              <p className="font-medium">{formatCompactNumber(quote.volume)}</p>
+            </div>
+            {quote.averageDailyVolume3Month != null && (
+              <div>
+                <span className="text-gray-500">Avg Volume</span>
+                <p className="font-medium">{formatCompactNumber(quote.averageDailyVolume3Month)}</p>
+              </div>
+            )}
+            {quote.marketCap != null && (
+              <div>
+                <span className="text-gray-500">Market Cap</span>
+                <p className="font-medium">{formatCompactNumber(quote.marketCap)}</p>
+              </div>
+            )}
+            {quote.epsTrailingTwelveMonths != null && (
+              <div>
+                <span className="text-gray-500">EPS (TTM)</span>
+                <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.trailingPE != null && (
+              <div>
+                <span className="text-gray-500">P/E Ratio</span>
+                <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.forwardPE != null && (
+              <div>
+                <span className="text-gray-500">Forward P/E</span>
+                <p className="font-medium">{quote.forwardPE.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.priceToBook != null && (
+              <div>
+                <span className="text-gray-500">Price/Book</span>
+                <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.beta != null && (
+              <div>
+                <span className="text-gray-500">Beta</span>
+                <p className="font-medium">{quote.beta.toFixed(2)}</p>
+              </div>
+            )}
+            {quote.dividendYield != null && quote.dividendYield > 0 && (
+              <div>
+                <span className="text-gray-500">Dividend Yield</span>
+                <p className="font-medium">{(quote.dividendYield * 100).toFixed(2)}%</p>
+              </div>
+            )}
+            {quote.earningsTimestamp != null && (
+              <div>
+                <span className="text-gray-500">Next Earnings</span>
+                <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              </div>
+            )}
+            {quote.fullTimeEmployees != null && (
+              <div>
+                <span className="text-gray-500">Employees</span>
+                <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
