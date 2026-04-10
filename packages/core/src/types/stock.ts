@@ -25,6 +25,12 @@ export interface Quote {
   priceToBook?: number;
   earningsTimestamp?: number;
   fullTimeEmployees?: number;
+  targetMeanPrice?: number;
+  targetHighPrice?: number;
+  targetLowPrice?: number;
+  numberOfAnalystOpinions?: number;
+  recommendationKey?: string;
+  recommendationMean?: number;
   updatedAt: number;
 }
 

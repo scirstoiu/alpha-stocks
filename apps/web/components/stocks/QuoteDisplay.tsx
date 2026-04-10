@@ -6,23 +6,38 @@ import Skeleton from '@/components/ui/Skeleton';
 
 function RangeBar({ low, high, current, label }: { low: number; high: number; current: number; label: string }) {
   const pct = high > low ? ((current - low) / (high - low)) * 100 : 50;
-  const isForex = false; // caller handles formatting
   return (
     <div>
-      <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold w-20 text-right">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        <div className="flex-1 relative h-1.5 bg-gray-200 rounded-full">
+      <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium w-16 text-right tabular-nums">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <div className="flex-1 relative h-1 bg-gray-200 rounded-full">
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-gray-500 rounded-full border-2 border-white shadow"
+            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-gray-500 rounded-full border border-white shadow-sm"
             style={{ left: `${Math.min(Math.max(pct, 0), 100)}%`, transform: 'translate(-50%, -50%)' }}
           />
         </div>
-        <span className="text-sm font-semibold w-20">{high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className="text-xs font-medium w-16 tabular-nums">{high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </div>
     </div>
   );
 }
+
+const REC_COLORS: Record<string, string> = {
+  'strong_buy': 'text-green-700 bg-green-50',
+  'buy': 'text-green-600 bg-green-50',
+  'hold': 'text-yellow-700 bg-yellow-50',
+  'underperform': 'text-orange-600 bg-orange-50',
+  'sell': 'text-red-600 bg-red-50',
+};
+
+const REC_LABELS: Record<string, string> = {
+  'strong_buy': 'Strong Buy',
+  'buy': 'Buy',
+  'hold': 'Hold',
+  'underperform': 'Underperform',
+  'sell': 'Sell',
+};
 
 export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol: string; compact?: boolean; detailsOnly?: boolean }) {
   const { data: quote, isLoading, error } = useStockQuote(symbol);
@@ -94,7 +109,7 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
           {/* Ranges (left) + Key Metrics (right) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Left: Ranges + basic stats */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {quote.low > 0 && quote.high > 0 && (
                 <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
               )}
@@ -123,38 +138,61 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
               </div>
             </div>
 
-            {/* Right: Valuation + info metrics */}
-            <div className="grid grid-cols-2 gap-3 text-sm content-start">
-              {quote.epsTrailingTwelveMonths != null && (
-                <div>
-                  <span className="text-gray-500">EPS (TTM)</span>
-                  <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
+            {/* Right: Valuation + analyst */}
+            <div className="space-y-3">
+              {/* Analyst target + recommendation */}
+              {quote.targetMeanPrice != null && (
+                <div className="flex items-center gap-3 text-sm">
+                  {quote.recommendationKey && (
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${REC_COLORS[quote.recommendationKey] || 'text-gray-600 bg-gray-100'}`}>
+                      {REC_LABELS[quote.recommendationKey] || quote.recommendationKey}
+                    </span>
+                  )}
+                  <div>
+                    <span className="text-gray-500">Price Target </span>
+                    <span className="font-semibold">{formatCurrency(quote.targetMeanPrice)}</span>
+                    {quote.targetLowPrice != null && quote.targetHighPrice != null && (
+                      <span className="text-gray-400 text-xs ml-1">({formatCurrency(quote.targetLowPrice)} – {formatCurrency(quote.targetHighPrice)})</span>
+                    )}
+                  </div>
+                  {quote.numberOfAnalystOpinions != null && (
+                    <span className="text-xs text-gray-400">{quote.numberOfAnalystOpinions} analysts</span>
+                  )}
                 </div>
               )}
-              {quote.trailingPE != null && (
-                <div>
-                  <span className="text-gray-500">P/E Ratio</span>
-                  <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
-                </div>
-              )}
-              {quote.priceToBook != null && (
-                <div>
-                  <span className="text-gray-500">Price/Book</span>
-                  <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
-                </div>
-              )}
-              {quote.earningsTimestamp != null && (
-                <div>
-                  <span className="text-gray-500">Next Earnings</span>
-                  <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-              )}
-              {quote.fullTimeEmployees != null && (
-                <div>
-                  <span className="text-gray-500">Employees</span>
-                  <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
-                </div>
-              )}
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {quote.epsTrailingTwelveMonths != null && (
+                  <div>
+                    <span className="text-gray-500">EPS (TTM)</span>
+                    <p className="font-medium">{quote.epsTrailingTwelveMonths.toFixed(2)}</p>
+                  </div>
+                )}
+                {quote.trailingPE != null && (
+                  <div>
+                    <span className="text-gray-500">P/E Ratio</span>
+                    <p className="font-medium">{quote.trailingPE.toFixed(2)}</p>
+                  </div>
+                )}
+                {quote.priceToBook != null && (
+                  <div>
+                    <span className="text-gray-500">Price/Book</span>
+                    <p className="font-medium">{quote.priceToBook.toFixed(2)}</p>
+                  </div>
+                )}
+                {quote.earningsTimestamp != null && (
+                  <div>
+                    <span className="text-gray-500">Next Earnings</span>
+                    <p className="font-medium">{new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  </div>
+                )}
+                {quote.fullTimeEmployees != null && (
+                  <div>
+                    <span className="text-gray-500">Employees</span>
+                    <p className="font-medium">{quote.fullTimeEmployees.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

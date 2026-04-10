@@ -62,7 +62,19 @@ export function createYahooProvider(): IStockProvider {
   return {
     async getQuote(symbol: string): Promise<Quote> {
       const yf = await getYf();
-      const result = await yf.quote(symbol);
+      const [result, summary] = await Promise.all([
+        yf.quote(symbol),
+        yf.quoteSummary(symbol, { modules: ['financialData'] }).catch(() => null),
+      ]);
+      const fd = summary?.financialData as Record<string, unknown> | undefined;
+      const fdNum = (key: string): number | undefined => {
+        const val = fd?.[key];
+        if (val == null) return undefined;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'object' && val !== null && 'raw' in (val as Record<string, unknown>))
+          return (val as Record<string, unknown>).raw as number;
+        return undefined;
+      };
       return {
         symbol: result.symbol,
         name: result.shortName || result.longName || result.symbol,
@@ -90,6 +102,12 @@ export function createYahooProvider(): IStockProvider {
         priceToBook: result.priceToBook,
         earningsTimestamp: result.earningsTimestamp ? new Date(result.earningsTimestamp as unknown as string | number).getTime() : undefined,
         fullTimeEmployees: (result as Record<string, unknown>).fullTimeEmployees as number | undefined,
+        targetMeanPrice: fdNum('targetMeanPrice'),
+        targetHighPrice: fdNum('targetHighPrice'),
+        targetLowPrice: fdNum('targetLowPrice'),
+        numberOfAnalystOpinions: fdNum('numberOfAnalystOpinions'),
+        recommendationKey: fd?.recommendationKey as string | undefined,
+        recommendationMean: fdNum('recommendationMean'),
         updatedAt: Date.now(),
       };
     },
