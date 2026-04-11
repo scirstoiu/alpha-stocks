@@ -8,7 +8,7 @@ function RangeBar({ low, high, current, label }: { low: number; high: number; cu
   const pct = high > low ? ((current - low) / (high - low)) * 100 : 50;
   return (
     <div>
-      <div className="text-xs text-gray-400 mb-1">{label}</div>
+      <div className="text-xs text-gray-500 font-medium mb-1">{label}</div>
       <div className="flex items-center gap-2.5">
         <span className="text-sm font-medium w-18 tabular-nums">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         <div className="flex-1 relative h-1.5 bg-gray-200 rounded-full">
@@ -106,7 +106,7 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
           </div>
           {/* Right: Ranges */}
           {!isForex && (
-            <div className="hidden sm:flex flex-col justify-center gap-3 min-w-[320px]">
+            <div className="hidden sm:flex flex-col justify-center gap-3 min-w-[370px]">
               {quote.low > 0 && quote.high > 0 && (
                 <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
               )}
