@@ -8,16 +8,16 @@ function RangeBar({ low, high, current, label }: { low: number; high: number; cu
   const pct = high > low ? ((current - low) / (high - low)) * 100 : 50;
   return (
     <div>
-      <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium w-16 tabular-nums">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        <div className="flex-1 relative h-1 bg-gray-200 rounded-full">
+      <div className="text-xs text-gray-400 mb-1">{label}</div>
+      <div className="flex items-center gap-2.5">
+        <span className="text-sm font-medium w-18 tabular-nums">{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <div className="flex-1 relative h-1.5 bg-gray-200 rounded-full">
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-gray-500 rounded-full border border-white shadow-sm"
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-gray-500 rounded-full border-2 border-white shadow-sm"
             style={{ left: `${Math.min(Math.max(pct, 0), 100)}%`, transform: 'translate(-50%, -50%)' }}
           />
         </div>
-        <span className="text-xs font-medium w-16 tabular-nums">{high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className="text-sm font-medium w-18 tabular-nums">{high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ export default function QuoteDisplay({ symbol, compact, detailsOnly }: { symbol:
           </div>
           {/* Right: Ranges */}
           {!isForex && (
-            <div className="hidden sm:flex flex-col justify-center gap-2 min-w-[250px]">
+            <div className="hidden sm:flex flex-col justify-center gap-3 min-w-[320px]">
               {quote.low > 0 && quote.high > 0 && (
                 <RangeBar low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
               )}
