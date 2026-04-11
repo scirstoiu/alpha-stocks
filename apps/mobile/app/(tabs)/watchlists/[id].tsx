@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   searchName: { color: '#6b7280', fontSize: 13, flex: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
   symbol: { fontWeight: '600', fontSize: 15 },
-  name: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  name: { fontSize: 13, color: '#6b7280', marginTop: 2 },
   priceCol: { alignItems: 'flex-end' },
   price: { fontWeight: '600', fontSize: 15 },
   change: { fontSize: 14, marginTop: 2 },
