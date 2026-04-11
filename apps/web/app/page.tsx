@@ -259,7 +259,7 @@ function UpcomingEarnings() {
               <StockLogo symbol={e.symbol} size={20} />
               <span className="font-medium text-sm">{e.symbol}</span>
             </div>
-            <span className="text-xs text-gray-500">{formatDate(e.date)}</span>
+            <span className="text-sm text-gray-500">{formatDate(e.date)}</span>
           </Link>
         ))}
       </div>
