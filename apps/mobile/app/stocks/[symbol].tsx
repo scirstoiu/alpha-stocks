@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams } from 'expo-router';
 import { useStockQuote, useHistoricalPrices, useNews, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange, type NewsItem } from '@alpha-stocks/core';
 import { useState } from 'react';
@@ -277,7 +278,7 @@ function StockNews({ symbol }: { symbol: string }) {
     <View style={styles.newsSection}>
       <Text style={styles.newsTitle}>News</Text>
       {sorted.map((n) => (
-        <TouchableOpacity key={n.id} style={styles.newsRow} onPress={() => Linking.openURL(n.url)} activeOpacity={0.7}>
+        <TouchableOpacity key={n.id} style={styles.newsRow} onPress={() => WebBrowser.openBrowserAsync(n.url)} activeOpacity={0.7}>
           <Text style={styles.newsHeadline} numberOfLines={2}>{n.headline}</Text>
           <View style={styles.newsMetaRow}>
             <Text style={styles.newsSource}>{n.source}</Text>

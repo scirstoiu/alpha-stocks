@@ -1,6 +1,7 @@
-import { View, Text, FlatList, TouchableOpacity, Linking, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import * as WebBrowser from 'expo-web-browser';
 import { useNews, type NewsItem } from '@alpha-stocks/core';
 
 function timeAgo(ts: number): string {
@@ -37,13 +38,13 @@ export default function NewsScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => Linking.openURL(item.url)}
+            onPress={() => WebBrowser.openBrowserAsync(item.url)}
           >
             <Text style={styles.headline} numberOfLines={2}>{item.headline}</Text>
-            <Text style={styles.summary} numberOfLines={2}>{item.summary}</Text>
+            {item.summary ? <Text style={styles.summary} numberOfLines={2}>{item.summary}</Text> : null}
             <View style={styles.meta}>
               <Text style={styles.source}>{item.source}</Text>
-              <Text style={styles.time}>{timeAgo(item.publishedAt)}</Text>
+              <Text style={styles.time}> · {timeAgo(item.publishedAt)}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -56,9 +57,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, paddingTop: 48, backgroundColor: '#f9fafb' },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 32 },
   card: { backgroundColor: '#fff', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 8 },
-  headline: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  summary: { fontSize: 12, color: '#6b7280', marginBottom: 6 },
-  meta: { flexDirection: 'row', gap: 8 },
-  source: { fontSize: 11, color: '#9ca3af' },
-  time: { fontSize: 11, color: '#9ca3af' },
+  headline: { fontSize: 15, fontWeight: '600', marginBottom: 5, lineHeight: 21 },
+  summary: { fontSize: 13, color: '#6b7280', marginBottom: 6, lineHeight: 19 },
+  meta: { flexDirection: 'row', alignItems: 'center' },
+  source: { fontSize: 13, fontWeight: '600', color: '#2563eb' },
+  time: { fontSize: 13, color: '#9ca3af' },
 });
