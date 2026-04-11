@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, Linking } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useStockQuote, useHistoricalPrices, useNews, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange, type NewsItem } from '@alpha-stocks/core';
 import { useState } from 'react';
@@ -156,6 +156,18 @@ export default function StockDetailScreen() {
         ))}
       </ScrollView>
 
+      {/* Day/52w Ranges */}
+      {!isIndex && (
+        <View style={styles.rangesSection}>
+          {quote.low > 0 && quote.high > 0 && (
+            <RangeBarMobile low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+          )}
+          {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
+            <RangeBarMobile low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
+          )}
+        </View>
+      )}
+
       {/* Analyst target */}
       {quote.targetMeanPrice != null && (
         <View style={styles.analystRow}>
@@ -199,6 +211,31 @@ export default function StockDetailScreen() {
   );
 }
 
+function RangeBarMobile({ low, high, current, label }: { low: number; high: number; current: number; label: string }) {
+  const pct = high > low ? ((current - low) / (high - low)) * 100 : 50;
+  return (
+    <View style={rangeStyles.container}>
+      <Text style={rangeStyles.label}>{label}</Text>
+      <View style={rangeStyles.row}>
+        <Text style={rangeStyles.value}>{low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+        <View style={rangeStyles.track}>
+          <View style={[rangeStyles.dot, { left: `${Math.min(Math.max(pct, 0), 100)}%` }]} />
+        </View>
+        <Text style={rangeStyles.value}>{high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+      </View>
+    </View>
+  );
+}
+
+const rangeStyles = StyleSheet.create({
+  container: { marginBottom: 6 },
+  label: { fontSize: 12, color: '#6b7280', fontWeight: '500', marginBottom: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  value: { fontSize: 13, fontWeight: '600', minWidth: 55 },
+  track: { flex: 1, height: 4, backgroundColor: '#e5e7eb', borderRadius: 2, position: 'relative' },
+  dot: { position: 'absolute', top: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: '#6b7280', borderWidth: 2, borderColor: '#fff', marginLeft: -5 },
+});
+
 function StatItem({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.statItem}>
@@ -229,13 +266,13 @@ function StockNews({ symbol }: { symbol: string }) {
     <View style={styles.newsSection}>
       <Text style={styles.newsTitle}>News</Text>
       {sorted.map((n) => (
-        <View key={n.id} style={styles.newsRow}>
+        <TouchableOpacity key={n.id} style={styles.newsRow} onPress={() => Linking.openURL(n.url)} activeOpacity={0.7}>
           <Text style={styles.newsHeadline} numberOfLines={2}>{n.headline}</Text>
           <View style={styles.newsMetaRow}>
             <Text style={styles.newsSource}>{n.source}</Text>
             <Text style={styles.newsMeta}> · {timeAgo(n.publishedAt)}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -273,7 +310,8 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   statValue: { fontSize: 16, fontWeight: '600' },
   analystRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  recBadge: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
+  rangesSection: { marginBottom: 12 },
+  recBadge: { fontSize: 15, fontWeight: '700', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, overflow: 'hidden' },
   targetText: { fontSize: 14, color: '#6b7280' },
   targetPrice: { fontSize: 16, fontWeight: '700', color: '#111827' },
   analystCount: { fontSize: 12, color: '#9ca3af' },

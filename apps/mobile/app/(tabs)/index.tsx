@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet, Linking } from 'react-native';
 import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -212,7 +212,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>News for your stocks</Text>
           {newsItems.map((n) => (
-            <View key={n.id} style={styles.newsRow}>
+            <TouchableOpacity key={n.id} style={styles.newsRow} onPress={() => Linking.openURL(n.url)} activeOpacity={0.7}>
               <Text style={styles.newsHeadline} numberOfLines={2}>{n.headline}</Text>
               <View style={styles.newsMetaRow}>
                 <Text style={styles.newsSource}>{n.source}</Text>
@@ -221,7 +221,7 @@ export default function HomeScreen() {
                   <Text style={styles.newsTickers}> · {n.relatedSymbols.slice(0, 3).join(', ')}</Text>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
