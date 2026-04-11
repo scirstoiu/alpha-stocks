@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useStockQuote, useHistoricalPrices, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange } from '@alpha-stocks/core';
+import { useStockQuote, useHistoricalPrices, useNews, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange, type NewsItem } from '@alpha-stocks/core';
 import { useState } from 'react';
 import { TouchableOpacity } from 'react-native';
 import StockLogo from '../../components/stocks/StockLogo';
@@ -156,17 +156,43 @@ export default function StockDetailScreen() {
         ))}
       </ScrollView>
 
+      {/* Analyst target */}
+      {quote.targetMeanPrice != null && (
+        <View style={styles.analystRow}>
+          {quote.recommendationKey && (
+            <Text style={[styles.recBadge, {
+              color: quote.recommendationKey === 'buy' || quote.recommendationKey === 'strong_buy' ? '#16a34a' : quote.recommendationKey === 'hold' ? '#ca8a04' : '#dc2626',
+              backgroundColor: quote.recommendationKey === 'buy' || quote.recommendationKey === 'strong_buy' ? '#f0fdf4' : quote.recommendationKey === 'hold' ? '#fefce8' : '#fef2f2',
+            }]}>
+              {quote.recommendationKey === 'strong_buy' ? 'Strong Buy' : quote.recommendationKey.charAt(0).toUpperCase() + quote.recommendationKey.slice(1)}
+            </Text>
+          )}
+          <Text style={styles.targetText}>Target <Text style={styles.targetPrice}>{formatCurrency(quote.targetMeanPrice)}</Text></Text>
+          {quote.numberOfAnalystOpinions != null && (
+            <Text style={styles.analystCount}>{quote.numberOfAnalystOpinions} analysts</Text>
+          )}
+        </View>
+      )}
+
       {/* Stats */}
       <View style={styles.grid}>
         <StatItem label="Open" value={formatCurrency(quote.open)} />
-        <StatItem label="High" value={formatCurrency(quote.high)} />
-        <StatItem label="Low" value={formatCurrency(quote.low)} />
-        <StatItem label="Volume" value={formatCompactNumber(quote.volume)} />
         <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
-        {quote.marketCap ? (
-          <StatItem label="Market Cap" value={formatCompactNumber(quote.marketCap)} />
-        ) : null}
+        {quote.marketCap != null && <StatItem label="Market Cap" value={formatCompactNumber(quote.marketCap)} />}
+        <StatItem label="Volume" value={formatCompactNumber(quote.volume)} />
+        {quote.averageDailyVolume3Month != null && <StatItem label="Avg Volume" value={formatCompactNumber(quote.averageDailyVolume3Month)} />}
+        {quote.epsTrailingTwelveMonths != null && <StatItem label="EPS (TTM)" value={quote.epsTrailingTwelveMonths.toFixed(2)} />}
+        {quote.trailingPE != null && <StatItem label="P/E Ratio" value={quote.trailingPE.toFixed(2)} />}
+        {quote.forwardPE != null && <StatItem label="Forward P/E" value={quote.forwardPE.toFixed(2)} />}
+        {quote.priceToBook != null && <StatItem label="Price/Book" value={quote.priceToBook.toFixed(2)} />}
+        {quote.beta != null && <StatItem label="Beta" value={quote.beta.toFixed(2)} />}
+        {quote.dividendYield != null && quote.dividendYield > 0 && <StatItem label="Div Yield" value={`${(quote.dividendYield * 100).toFixed(2)}%`} />}
+        {quote.earningsTimestamp != null && <StatItem label="Next Earnings" value={new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />}
+        {quote.fullTimeEmployees != null && <StatItem label="Employees" value={quote.fullTimeEmployees.toLocaleString()} />}
       </View>
+
+      {/* News */}
+      <StockNews symbol={upperSymbol} />
 
       <View style={{ height: 32 }} />
     </ScrollView>
@@ -178,6 +204,39 @@ function StatItem({ label, value }: { label: string; value: string }) {
     <View style={styles.statItem}>
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={styles.statValue}>{value}</Text>
+    </View>
+  );
+}
+
+function timeAgo(ts: number): string {
+  const seconds = Math.floor((Date.now() - ts) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function StockNews({ symbol }: { symbol: string }) {
+  const { data: news } = useNews(symbol);
+
+  if (!news || news.length === 0) return null;
+
+  const sorted = [...news].sort((a, b) => b.publishedAt - a.publishedAt).slice(0, 10);
+
+  return (
+    <View style={styles.newsSection}>
+      <Text style={styles.newsTitle}>News</Text>
+      {sorted.map((n) => (
+        <View key={n.id} style={styles.newsRow}>
+          <Text style={styles.newsHeadline} numberOfLines={2}>{n.headline}</Text>
+          <View style={styles.newsMetaRow}>
+            <Text style={styles.newsSource}>{n.source}</Text>
+            <Text style={styles.newsMeta}> · {timeAgo(n.publishedAt)}</Text>
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -213,4 +272,16 @@ const styles = StyleSheet.create({
   },
   statLabel: { fontSize: 11, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   statValue: { fontSize: 16, fontWeight: '600' },
+  analystRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  recBadge: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
+  targetText: { fontSize: 14, color: '#6b7280' },
+  targetPrice: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  analystCount: { fontSize: 12, color: '#9ca3af' },
+  newsSection: { marginTop: 20 },
+  newsTitle: { fontSize: 14, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  newsRow: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
+  newsHeadline: { fontSize: 15, fontWeight: '600', marginBottom: 5, lineHeight: 21 },
+  newsMetaRow: { flexDirection: 'row', alignItems: 'center' },
+  newsSource: { fontSize: 13, fontWeight: '600', color: '#2563eb' },
+  newsMeta: { fontSize: 13, color: '#9ca3af' },
 });
