@@ -183,6 +183,17 @@ export default function StockDetailScreen() {
           {quote.numberOfAnalystOpinions != null && (
             <Text style={styles.analystCount}>{quote.numberOfAnalystOpinions} analysts</Text>
           )}
+          {(() => {
+            const upside = quote.targetMeanPrice && quote.price > 0
+              ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
+              : null;
+            if (upside == null) return null;
+            return (
+              <Text style={[styles.upside, { color: upside >= 0 ? '#16a34a' : '#dc2626' }]}>
+                {upside >= 0 ? '+' : ''}{upside.toFixed(1)}% upside
+              </Text>
+            );
+          })()}
         </View>
       )}
 
@@ -315,6 +326,7 @@ const styles = StyleSheet.create({
   targetText: { fontSize: 14, color: '#6b7280' },
   targetPrice: { fontSize: 16, fontWeight: '700', color: '#111827' },
   analystCount: { fontSize: 12, color: '#9ca3af' },
+  upside: { fontSize: 14, fontWeight: '700' },
   newsSection: { marginTop: 20 },
   newsTitle: { fontSize: 14, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   newsRow: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
