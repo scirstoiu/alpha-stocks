@@ -252,9 +252,9 @@ const styles = StyleSheet.create({
   price: { fontWeight: '600', fontSize: 15 },
   change: { fontSize: 13, marginTop: 2 },
   newsRow: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
-  newsHeadline: { fontSize: 14, fontWeight: '600', marginBottom: 5, lineHeight: 20 },
+  newsHeadline: { fontSize: 15, fontWeight: '600', marginBottom: 5, lineHeight: 21 },
   newsMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  newsSource: { fontSize: 12, fontWeight: '600', color: '#2563eb' },
-  newsMeta: { fontSize: 12, color: '#9ca3af' },
-  newsTickers: { fontSize: 12, color: '#9ca3af' },
+  newsSource: { fontSize: 13, fontWeight: '600', color: '#2563eb' },
+  newsMeta: { fontSize: 13, color: '#9ca3af' },
+  newsTickers: { fontSize: 13, color: '#9ca3af' },
 });
