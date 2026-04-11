@@ -84,7 +84,7 @@ export default function StockDetailScreen() {
   const { symbol } = useLocalSearchParams<{ symbol: string }>();
   const upperSymbol = (symbol || '').toUpperCase();
   const { data: quote, isLoading, error } = useStockQuote(upperSymbol);
-  const [range, setRange] = useState<HistoricalRange>('1Y');
+  const [range, setRange] = useState<HistoricalRange>('YTD');
 
   if (isLoading) {
     return (
