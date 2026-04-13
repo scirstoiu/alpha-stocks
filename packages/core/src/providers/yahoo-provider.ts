@@ -180,18 +180,32 @@ export function createYahooProvider(): IStockProvider {
 
     async getFinancials(symbol: string): Promise<FinancialData> {
       const yf = await getYf();
-      const result = await yf.quoteSummary(symbol, {
-        modules: ['incomeStatementHistory', 'earnings', 'financialData'],
-      });
 
-      const income = result.incomeStatementHistory?.incomeStatementHistory || [];
-      const annualFinancials = income.map((stmt) => ({
-        date: stmt.endDate ? new Date(stmt.endDate as unknown as string | number).toISOString().split('T')[0] : '',
-        revenue: (stmt as unknown as Record<string, number>).totalRevenue ?? 0,
-        grossProfit: (stmt as unknown as Record<string, number>).grossProfit ?? 0,
-        operatingIncome: (stmt as unknown as Record<string, number>).operatingIncome ?? 0,
-        netIncome: (stmt as unknown as Record<string, number>).netIncome ?? 0,
-      })).reverse();
+      // Fetch 10 years of annual financials via fundamentalsTimeSeries
+      const tenYearsAgo = new Date();
+      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+      const [tsData, summaryResult] = await Promise.all([
+        yf.fundamentalsTimeSeries(symbol, {
+          period1: tenYearsAgo.toISOString().split('T')[0],
+          type: 'annual',
+          module: 'financials',
+        }).catch(() => [] as Record<string, unknown>[]),
+        yf.quoteSummary(symbol, {
+          modules: ['earnings', 'financialData'],
+        }),
+      ]);
+
+      const result = summaryResult;
+      const annualFinancials = (tsData as Record<string, unknown>[])
+        .filter((d) => d.date != null)
+        .map((d) => ({
+          date: new Date(d.date as string | number).toISOString().split('T')[0],
+          revenue: (d.totalRevenue as number) ?? 0,
+          grossProfit: (d.grossProfit as number) ?? 0,
+          operatingIncome: (d.operatingIncome as number) ?? 0,
+          netIncome: (d.netIncome as number) ?? 0,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
 
       const earningsData = result.earnings;
       const quarterlyEarnings = (earningsData?.earningsChart?.quarterly || []).map(
