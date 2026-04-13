@@ -77,7 +77,7 @@ function BarChart({
                 <SvgText
                   x={cx - barWidth - gap / 2}
                   y={revTop - 5}
-                  fontSize={10}
+                  fontSize={11}
                   fontWeight="700"
                   fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
                   textAnchor="start"
@@ -122,7 +122,7 @@ const barStyles = StyleSheet.create({
   legend: { flexDirection: 'row', gap: 16, marginBottom: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 10, height: 10, borderRadius: 2 },
-  legendText: { fontSize: 11, color: '#6b7280' },
+  legendText: { fontSize: 13, color: '#4b5563' },
 });
 
 export default function StockFinancials({ symbol }: { symbol: string }) {
