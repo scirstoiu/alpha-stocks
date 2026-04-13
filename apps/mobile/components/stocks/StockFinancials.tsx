@@ -128,7 +128,7 @@ function BarChart({
                 left: cx - barWidth * 1.5 - gap,
                 width: barWidth * 2,
                 textAlign: 'center',
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: '700',
                 color: yoyGrowth >= 0 ? '#16a34a' : '#dc2626',
                 opacity: dimmed ? 0.3 : 1,
