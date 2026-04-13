@@ -115,7 +115,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
       {/* Quarterly EPS */}
       {quarterlyEarnings && quarterlyEarnings.length > 0 && (
         <Card>
-          <h3 className="font-semibold mb-4">Earnings Per Share (Quarterly)</h3>
+          <h3 className="font-semibold mb-4">Quarterly Earnings</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -124,6 +124,8 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                   <th className="text-right py-2 font-medium text-gray-400 text-xs">EPS Est.</th>
                   <th className="text-right py-2 font-medium text-gray-400 text-xs">EPS Actual</th>
                   <th className="text-right py-2 font-medium text-gray-400 text-xs">Surprise</th>
+                  <th className="text-right py-2 font-medium text-gray-400 text-xs">Revenue</th>
+                  <th className="text-right py-2 font-medium text-gray-400 text-xs">Earnings</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,6 +141,8 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                       <td className={`py-2 text-right font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
                         {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
                       </td>
+                      <td className="py-2 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
+                      <td className="py-2 text-right text-gray-500">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
                     </tr>
                   );
                 })}

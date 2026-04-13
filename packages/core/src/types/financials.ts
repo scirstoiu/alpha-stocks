@@ -11,6 +11,8 @@ export interface QuarterlyEarning {
   quarter: string;
   epsActual: number | null;
   epsEstimate: number | null;
+  revenue: number | null;
+  earnings: number | null;
 }
 
 export interface FinancialMetrics {

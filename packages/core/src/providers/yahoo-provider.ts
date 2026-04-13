@@ -230,13 +230,28 @@ export function createYahooProvider(): IStockProvider {
       }
 
       const earningsData = result.earnings;
+      // Build quarterly revenue/earnings map from financialsChart
+      const qRevMap = new Map<string, { revenue: number; earnings: number }>();
+      const financialsQ = (earningsData as unknown as Record<string, unknown>)?.financialsChart as Record<string, unknown> | undefined;
+      const qFinancials = (financialsQ?.quarterly as Record<string, unknown>[] | undefined) || [];
+      for (const qf of qFinancials) {
+        const key = (qf.date as string) || (qf.fiscalQuarter as string) || '';
+        if (key) qRevMap.set(key, { revenue: (qf.revenue as number) ?? 0, earnings: (qf.earnings as number) ?? 0 });
+      }
+
       const quarterlyEarnings = (earningsData?.earningsChart?.quarterly || []).map(
-        (q) => ({
-          date: (q as unknown as Record<string, string>).date || '',
-          quarter: (q as unknown as Record<string, string>).date || '',
-          epsActual: typeof q.actual === 'number' ? q.actual : (q.actual as unknown as Record<string, number>)?.raw ?? null,
-          epsEstimate: typeof q.estimate === 'number' ? q.estimate : (q.estimate as unknown as Record<string, number>)?.raw ?? null,
-        }),
+        (q) => {
+          const qDate = (q as unknown as Record<string, string>).date || '';
+          const qRev = qRevMap.get(qDate);
+          return {
+            date: qDate,
+            quarter: qDate,
+            epsActual: typeof q.actual === 'number' ? q.actual : (q.actual as unknown as Record<string, number>)?.raw ?? null,
+            epsEstimate: typeof q.estimate === 'number' ? q.estimate : (q.estimate as unknown as Record<string, number>)?.raw ?? null,
+            revenue: qRev?.revenue ?? null,
+            earnings: qRev?.earnings ?? null,
+          };
+        },
       );
 
       const fd = result.financialData || {};
