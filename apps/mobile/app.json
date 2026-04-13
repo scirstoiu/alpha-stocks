@@ -2,7 +2,7 @@
   "expo": {
     "name": "Alpha Stocks",
     "slug": "alpha-stocks",
-    "version": "1.1.6",
+    "version": "1.1.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "alpha-stocks",

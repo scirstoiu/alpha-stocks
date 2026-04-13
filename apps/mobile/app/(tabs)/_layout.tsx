@@ -28,6 +28,16 @@ function WalletIcon({ color, size }: { color: string; size: number }) {
   );
 }
 
+function MenuIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M3 12h18" />
+      <Path d="M3 6h18" />
+      <Path d="M3 18h18" />
+    </Svg>
+  );
+}
+
 function NewsIcon({ color, size }: { color: string; size: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -78,6 +88,14 @@ export default function TabLayout() {
           title: 'News',
           tabBarLabel: 'News',
           tabBarIcon: ({ color, size }) => <NewsIcon color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color, size }) => <MenuIcon color={color} size={size} />,
         }}
       />
     </Tabs>
