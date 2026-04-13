@@ -78,17 +78,18 @@ function BarChart({
               ? ((d.revenue - prevRevenue) / prevRevenue) * 100
               : null;
             const revTop = TOP_PADDING + barArea - revH;
+            const revCenterX = cx - barWidth / 2 - gap / 2;
             const dimmed = selected !== null && selected !== i;
             return (
               <View key={i}>
                 {yoyGrowth !== null && (
                   <SvgText
-                    x={cx}
+                    x={cx - gap / 2}
                     y={revTop - 5}
                     fontSize={11}
                     fontWeight="700"
                     fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
-                    textAnchor="middle"
+                    textAnchor="end"
                     opacity={dimmed ? 0.3 : 1}
                   >
                     {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
