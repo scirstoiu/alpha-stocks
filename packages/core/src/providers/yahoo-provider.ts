@@ -181,7 +181,7 @@ export function createYahooProvider(): IStockProvider {
     async getFinancials(symbol: string): Promise<FinancialData> {
       const yf = await getYf();
 
-      // Fetch 10 years of annual financials via fundamentalsTimeSeries
+      // Fetch 10 years of annual financials via fundamentalsTimeSeries, fall back to incomeStatementHistory
       const tenYearsAgo = new Date();
       tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
       const [tsData, summaryResult] = await Promise.all([
@@ -191,21 +191,43 @@ export function createYahooProvider(): IStockProvider {
           module: 'financials',
         }).catch(() => [] as Record<string, unknown>[]),
         yf.quoteSummary(symbol, {
-          modules: ['earnings', 'financialData'],
+          modules: ['incomeStatementHistory', 'earnings', 'financialData'],
         }),
       ]);
 
       const result = summaryResult;
-      const annualFinancials = (tsData as Record<string, unknown>[])
+
+      // Try fundamentalsTimeSeries first (supports 10+ years)
+      const num = (d: Record<string, unknown>, ...keys: string[]): number => {
+        for (const k of keys) {
+          const v = d[k];
+          if (typeof v === 'number') return v;
+        }
+        return 0;
+      };
+      let annualFinancials = (tsData as Record<string, unknown>[])
         .filter((d) => d.date != null)
         .map((d) => ({
           date: new Date(d.date as string | number).toISOString().split('T')[0],
-          revenue: (d.totalRevenue as number) ?? 0,
-          grossProfit: (d.grossProfit as number) ?? 0,
-          operatingIncome: (d.operatingIncome as number) ?? 0,
-          netIncome: (d.netIncome as number) ?? 0,
+          revenue: num(d, 'totalRevenue', 'annualTotalRevenue'),
+          grossProfit: num(d, 'grossProfit', 'annualGrossProfit'),
+          operatingIncome: num(d, 'operatingIncome', 'annualOperatingIncome'),
+          netIncome: num(d, 'netIncome', 'annualNetIncome'),
         }))
+        .filter((d) => d.revenue > 0 || d.netIncome !== 0)
         .sort((a, b) => a.date.localeCompare(b.date));
+
+      // Fallback to incomeStatementHistory (4 years) if fundamentalsTimeSeries returned nothing
+      if (annualFinancials.length === 0) {
+        const income = result.incomeStatementHistory?.incomeStatementHistory || [];
+        annualFinancials = income.map((stmt) => ({
+          date: stmt.endDate ? new Date(stmt.endDate as unknown as string | number).toISOString().split('T')[0] : '',
+          revenue: (stmt as unknown as Record<string, number>).totalRevenue ?? 0,
+          grossProfit: (stmt as unknown as Record<string, number>).grossProfit ?? 0,
+          operatingIncome: (stmt as unknown as Record<string, number>).operatingIncome ?? 0,
+          netIncome: (stmt as unknown as Record<string, number>).netIncome ?? 0,
+        })).reverse();
+      }
 
       const earningsData = result.earnings;
       const quarterlyEarnings = (earningsData?.earningsChart?.quarterly || []).map(
