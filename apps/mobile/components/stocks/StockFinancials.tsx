@@ -83,9 +83,9 @@ function BarChart({
               <View key={i}>
                 {yoyGrowth !== null && (
                   <SvgText
-                    x={cx - barWidth / 2 - gap / 2}
+                    x={cx}
                     y={revTop - 5}
-                    fontSize={12}
+                    fontSize={11}
                     fontWeight="700"
                     fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
                     textAnchor="middle"
