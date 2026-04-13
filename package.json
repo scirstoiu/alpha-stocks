@@ -10,7 +10,8 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "format": "prettier --write .",
-    "test": "turbo test"
+    "test": "turbo test",
+    "build:android": "./scripts/build-android.sh"
   },
   "pnpm": {
     "overrides": {
