@@ -84,7 +84,7 @@ async function fetchAlphaVantageData(symbol: string): Promise<{
     }
 
     // Quarterly EPS from earnings
-    const qEarnings = (earningsData.quarterlyEarnings || []).slice(0, 10) as Record<string, string>[];
+    const qEarnings = (earningsData.quarterlyEarnings || []).slice(0, 12) as Record<string, string>[];
     const quarters: QuarterlyEarning[] = qEarnings.map((e) => {
       const date = e.fiscalDateEnding || '';
       const rev = qRevenueMap.get(date);
