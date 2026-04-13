@@ -83,12 +83,12 @@ function BarChart({
               <View key={i}>
                 {yoyGrowth !== null && (
                   <SvgText
-                    x={cx - barWidth - gap / 2}
+                    x={cx - gap / 2}
                     y={revTop - 5}
                     fontSize={12}
                     fontWeight="700"
                     fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
-                    textAnchor="start"
+                    textAnchor="middle"
                     opacity={dimmed ? 0.3 : 1}
                   >
                     {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
@@ -112,15 +112,6 @@ function BarChart({
                   fill="#fbbf24"
                   opacity={dimmed ? 0.3 : 1}
                 />
-                {/* Invisible wider tap target */}
-                <Rect
-                  x={Y_LABEL_WIDTH + barGroupWidth * i}
-                  y={0}
-                  width={barGroupWidth}
-                  height={CHART_HEIGHT}
-                  fill="transparent"
-                  onPress={() => setSelected(selected === i ? null : i)}
-                />
               </View>
             );
           })}
@@ -134,6 +125,21 @@ function BarChart({
             );
           })}
         </Svg>
+        {/* Touch overlays for bar tap */}
+        {data.map((_, i) => (
+          <TouchableOpacity
+            key={`tap${i}`}
+            activeOpacity={1}
+            onPress={() => setSelected(selected === i ? null : i)}
+            style={{
+              position: 'absolute',
+              left: Y_LABEL_WIDTH + barGroupWidth * i,
+              top: 0,
+              width: barGroupWidth,
+              height: CHART_HEIGHT,
+            }}
+          />
+        ))}
         {/* Tooltip popup */}
         {selected !== null && (() => {
           const d = data[selected];
