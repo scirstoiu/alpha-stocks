@@ -5,7 +5,7 @@ import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
 
-const CHART_HEIGHT = 320;
+const CHART_HEIGHT = 304;
 const Y_TICKS = 7;
 
 function fmtCompact2(value: number): string {
@@ -182,10 +182,10 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
     );
   }
 
-  const earningsDisplay = hasEarnings ? quarterlyEarnings.slice(-8) : [];
+  const earningsDisplay = hasEarnings ? [...quarterlyEarnings.slice(-8)].reverse() : [];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-stretch">
       {(hasAnnual || hasQuarterly) && (
         <Card>
           <div className="flex items-center justify-between mb-4">
