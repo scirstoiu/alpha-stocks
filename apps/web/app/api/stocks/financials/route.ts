@@ -1,21 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { createStockProvider } from '@alpha-stocks/core/providers';
 import type { AnnualFinancial } from '@alpha-stocks/core';
 
 const provider = createStockProvider(process.env.FINNHUB_API_KEY);
 
-// Cache: symbol -> { data, timestamp }
-const financialsCache = new Map<string, { data: unknown; ts: number }>();
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — financials rarely change
+const CACHE_TTL_DAYS = 7; // Financial data changes at most quarterly
 
-function getCached(key: string): unknown | null {
-  const entry = financialsCache.get(key);
-  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
-  return null;
+// Server-side Supabase client for caching
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
 }
 
-function setCache(key: string, data: unknown) {
-  financialsCache.set(key, { data, ts: Date.now() });
+async function getCached(key: string): Promise<unknown | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase
+      .from('api_cache')
+      .select('data')
+      .eq('key', key)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+    return data?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function setCache(key: string, value: unknown) {
+  const supabase = getSupabase();
+  if (!supabase) return;
+  const expires_at = new Date(Date.now() + CACHE_TTL_DAYS * 86400000).toISOString();
+  try {
+    await supabase
+      .from('api_cache')
+      .upsert({ key, data: value, expires_at }, { onConflict: 'key' });
+  } catch {
+    // Cache write failure is non-critical
+  }
 }
 
 // Fetch annual income statements from Alpha Vantage (10+ years)
@@ -56,7 +82,10 @@ export async function GET(request: NextRequest) {
   }
 
   const upper = symbol.toUpperCase();
-  const cached = getCached(upper);
+  const cacheKey = `financials:${upper}`;
+
+  // Check Supabase cache first
+  const cached = await getCached(cacheKey);
   if (cached) return NextResponse.json(cached);
 
   try {
@@ -74,7 +103,9 @@ export async function GET(request: NextRequest) {
         : yahooFinancials.annualFinancials,
     };
 
-    setCache(upper, result);
+    // Cache in Supabase (non-blocking)
+    setCache(cacheKey, result);
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Financials API error:', error);
