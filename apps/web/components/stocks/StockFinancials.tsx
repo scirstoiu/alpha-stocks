@@ -12,16 +12,15 @@ function fmtCompact2(value: number): string {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
 }
 
-function RevenueNetIncomeChart({ data }: {
+function RevenueNetIncomeChart({ data, labels }: {
   data: { date: string; revenue: number; netIncome: number }[];
+  labels?: string[];
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   if (data.length === 0) return null;
 
-  const limited = data.slice(-10);
-
-  const allVals = limited.flatMap((d) => [d.revenue, d.netIncome]);
+  const allVals = data.flatMap((d) => [d.revenue, d.netIncome]);
   const maxVal = Math.max(...allVals.map(Math.abs));
   const range = maxVal || 1;
 
@@ -58,11 +57,12 @@ function RevenueNetIncomeChart({ data }: {
               style={{ bottom: `${(v / range) * 100}%` }}
             />
           ))}
-          {limited.map((d, i) => {
-            const prevRevenue = i > 0 ? limited[i - 1].revenue : null;
+          {data.map((d, i) => {
+            const prevRevenue = i > 0 ? data[i - 1].revenue : null;
             const yoyGrowth = prevRevenue && prevRevenue > 0
               ? ((d.revenue - prevRevenue) / prevRevenue) * 100
               : null;
+            const label = labels ? labels[i] : d.date.slice(0, 4);
             return (
               <div
                 key={i}
@@ -89,7 +89,7 @@ function RevenueNetIncomeChart({ data }: {
                 </div>
                 {hovered === i && (
                   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-lg z-50 pointer-events-none">
-                    <div className="font-bold text-sm mb-1">{d.date.slice(0, 4)}</div>
+                    <div className="font-bold text-sm mb-1">{label}</div>
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-blue-400" />
                       <span className="text-gray-300">Revenue:</span>
@@ -113,9 +113,9 @@ function RevenueNetIncomeChart({ data }: {
         </div>
       </div>
       <div className="flex ml-8">
-        {limited.map((d, i) => (
+        {data.map((d, i) => (
           <div key={i} className="flex-1 text-center">
-            <span className="text-xs text-gray-400 mt-1">{d.date.slice(0, 4)}</span>
+            <span className="text-xs text-gray-400 mt-1">{labels ? labels[i] : d.date.slice(0, 4)}</span>
           </div>
         ))}
       </div>
@@ -123,8 +123,11 @@ function RevenueNetIncomeChart({ data }: {
   );
 }
 
+type ChartMode = 'annual' | 'quarterly';
+
 export default function StockFinancials({ symbol }: { symbol: string }) {
   const { data, isLoading, error } = useFinancials(symbol);
+  const [chartMode, setChartMode] = useState<ChartMode>('annual');
 
   if (isLoading) {
     return (
@@ -147,10 +150,31 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
   }
 
   const { annualFinancials, quarterlyEarnings } = data;
-  const hasChart = annualFinancials.length > 0;
+  const hasAnnual = annualFinancials.length > 0;
   const hasEarnings = quarterlyEarnings && quarterlyEarnings.length > 0;
 
-  if (!hasChart && !hasEarnings) {
+  // Build quarterly chart data from quarterlyEarnings (last 12 quarters with revenue data)
+  const quarterlyChartData = hasEarnings
+    ? quarterlyEarnings
+        .filter((q) => q.revenue != null && q.revenue > 0)
+        .slice(-12)
+        .map((q) => ({
+          date: q.date,
+          revenue: q.revenue ?? 0,
+          netIncome: q.earnings ?? 0,
+        }))
+    : [];
+  const quarterlyLabels = hasEarnings
+    ? quarterlyEarnings
+        .filter((q) => q.revenue != null && q.revenue > 0)
+        .slice(-12)
+        .map((q) => q.quarter)
+    : [];
+
+  const hasQuarterly = quarterlyChartData.length > 0;
+  const hasChart = chartMode === 'annual' ? hasAnnual : hasQuarterly;
+
+  if (!hasAnnual && !hasQuarterly && !hasEarnings) {
     return (
       <p className="text-gray-500 text-center py-8 text-sm">
         Financial data unavailable for {symbol}.
@@ -158,16 +182,44 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
     );
   }
 
+  const earningsDisplay = hasEarnings ? quarterlyEarnings.slice(-8) : [];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start">
-      {hasChart && (
+      {(hasAnnual || hasQuarterly) && (
         <Card>
-          <h3 className="font-semibold mb-4">Revenue & Net Income (Annual)</h3>
-          <RevenueNetIncomeChart data={annualFinancials} />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Revenue & Net Income</h3>
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+              <button
+                className={`px-3 py-1 font-medium transition-colors ${chartMode === 'annual' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                onClick={() => setChartMode('annual')}
+              >
+                Annual
+              </button>
+              <button
+                className={`px-3 py-1 font-medium transition-colors ${chartMode === 'quarterly' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                onClick={() => setChartMode('quarterly')}
+              >
+                Quarterly
+              </button>
+            </div>
+          </div>
+          {hasChart ? (
+            chartMode === 'annual' ? (
+              <RevenueNetIncomeChart data={annualFinancials.slice(-10)} />
+            ) : (
+              <RevenueNetIncomeChart data={quarterlyChartData} labels={quarterlyLabels} />
+            )
+          ) : (
+            <p className="text-gray-400 text-sm text-center py-8">
+              No {chartMode} data available.
+            </p>
+          )}
         </Card>
       )}
 
-      {hasEarnings && (
+      {earningsDisplay.length > 0 && (
         <Card className="md:w-[420px]">
           <h3 className="font-semibold mb-3 text-sm">Quarterly Earnings</h3>
           <div className="overflow-x-auto">
@@ -183,7 +235,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                 </tr>
               </thead>
               <tbody>
-                {quarterlyEarnings.map((q, i) => {
+                {earningsDisplay.map((q, i) => {
                   const surprise = q.epsActual != null && q.epsEstimate != null
                     ? q.epsActual - q.epsEstimate
                     : null;
