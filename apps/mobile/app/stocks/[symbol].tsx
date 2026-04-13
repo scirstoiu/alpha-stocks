@@ -88,6 +88,7 @@ export default function StockDetailScreen() {
   const upperSymbol = (symbol || '').toUpperCase();
   const { data: quote, isLoading, error } = useStockQuote(upperSymbol);
   const [range, setRange] = useState<HistoricalRange>('YTD');
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
 
   if (isLoading) {
     return (
@@ -105,7 +106,6 @@ export default function StockDetailScreen() {
     );
   }
 
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const isPositive = quote.change >= 0;
   const isIndex = quote.symbol.startsWith('^') || quote.symbol.includes('=');
 
