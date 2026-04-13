@@ -4,11 +4,11 @@ import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 
 const SCREEN_WIDTH = Dimensions.get('window').width - 32;
-const CHART_HEIGHT = 280;
-const Y_LABEL_WIDTH = 50;
+const CHART_HEIGHT = 290;
+const Y_LABEL_WIDTH = 42;
 const CHART_INNER_WIDTH = SCREEN_WIDTH - Y_LABEL_WIDTH;
 const Y_TICKS = 6;
-const TOP_PADDING = 28; // room for YoY labels
+const TOP_PADDING = 30; // room for YoY labels
 
 type ChartMode = 'annual' | 'quarterly';
 
@@ -57,7 +57,7 @@ function BarChart({
           <Line key={`g${i}`} x1={Y_LABEL_WIDTH} y1={tick.y} x2={SCREEN_WIDTH} y2={tick.y} stroke="#f3f4f6" strokeWidth={1} />
         ))}
         {ticks.map((tick, i) => (
-          <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={11} fill="#6b7280" textAnchor="end">
+          <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={12} fill="#4b5563" textAnchor="end">
             {fmtCompact(tick.value)}
           </SvgText>
         ))}
@@ -75,14 +75,14 @@ function BarChart({
             <View key={i}>
               {yoyGrowth !== null && (
                 <SvgText
-                  x={cx - gap / 2}
-                  y={revTop - 4}
-                  fontSize={9}
-                  fontWeight="600"
+                  x={cx - barWidth - gap / 2}
+                  y={revTop - 5}
+                  fontSize={10}
+                  fontWeight="700"
                   fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
-                  textAnchor="middle"
+                  textAnchor="start"
                 >
-                  {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                  {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
                 </SvgText>
               )}
               <Rect
@@ -108,7 +108,7 @@ function BarChart({
         {labels.map((label, i) => {
           const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
           return (
-            <SvgText key={`x${i}`} x={cx} y={CHART_HEIGHT - 4} fontSize={9} fill="#9ca3af" textAnchor="middle">
+            <SvgText key={`x${i}`} x={cx} y={CHART_HEIGHT - 4} fontSize={11} fill="#4b5563" textAnchor="middle">
               {label}
             </SvgText>
           );
@@ -153,7 +153,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
   const annualLabels = annualFinancials.slice(-8).map((d) => d.date.slice(0, 4));
 
   const quarterlyFiltered = hasEarnings
-    ? quarterlyEarnings.filter((q) => q.revenue != null && q.revenue > 0).slice(-8)
+    ? quarterlyEarnings.filter((q) => q.revenue != null && q.revenue > 0).slice(-6)
     : [];
   const quarterlyChartData = quarterlyFiltered.map((q) => ({
     revenue: q.revenue ?? 0,
