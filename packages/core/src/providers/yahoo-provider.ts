@@ -58,6 +58,57 @@ function rangeToParams(range: HistoricalRange): { period1: Date; interval: strin
   return { period1, interval: config.interval };
 }
 
+function mapYahooResult(result: Record<string, unknown>, financialData?: Record<string, unknown>): Quote {
+  const fdNum = (key: string): number | undefined => {
+    const val = financialData?.[key];
+    if (val == null) return undefined;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'object' && val !== null && 'raw' in (val as Record<string, unknown>))
+      return (val as Record<string, unknown>).raw as number;
+    return undefined;
+  };
+  return {
+    symbol: result.symbol as string,
+    name: (result.shortName || result.longName || result.symbol) as string,
+    price: (result.regularMarketPrice as number) ?? 0,
+    change: (result.regularMarketChange as number) ?? 0,
+    changePercent: (result.regularMarketChangePercent as number) ?? 0,
+    open: (result.regularMarketOpen as number) ?? 0,
+    high: (result.regularMarketDayHigh as number) ?? 0,
+    low: (result.regularMarketDayLow as number) ?? 0,
+    previousClose: (result.regularMarketPreviousClose as number) ?? 0,
+    volume: (result.regularMarketVolume as number) ?? 0,
+    marketCap: result.marketCap as number | undefined,
+    exchange: result.exchange as string | undefined,
+    currency: result.currency as string | undefined,
+    preMarketPrice: result.preMarketPrice as number | undefined,
+    preMarketChange: result.preMarketChange as number | undefined,
+    preMarketChangePercent: result.preMarketChangePercent as number | undefined,
+    postMarketPrice: result.postMarketPrice as number | undefined,
+    postMarketChange: result.postMarketChange as number | undefined,
+    postMarketChangePercent: result.postMarketChangePercent as number | undefined,
+    fiftyTwoWeekHigh: result.fiftyTwoWeekHigh as number | undefined,
+    fiftyTwoWeekLow: result.fiftyTwoWeekLow as number | undefined,
+    trailingPE: result.trailingPE as number | undefined,
+    epsTrailingTwelveMonths: result.epsTrailingTwelveMonths as number | undefined,
+    priceToBook: result.priceToBook as number | undefined,
+    earningsTimestamp: result.earningsTimestamp ? new Date(result.earningsTimestamp as string | number).getTime() : undefined,
+    fullTimeEmployees: result.fullTimeEmployees as number | undefined,
+    targetMeanPrice: fdNum('targetMeanPrice'),
+    targetHighPrice: fdNum('targetHighPrice'),
+    targetLowPrice: fdNum('targetLowPrice'),
+    numberOfAnalystOpinions: fdNum('numberOfAnalystOpinions'),
+    recommendationKey: financialData?.recommendationKey as string | undefined,
+    recommendationMean: fdNum('recommendationMean'),
+    beta: result.beta as number | undefined,
+    dividendYield: result.dividendYield as number | undefined,
+    forwardPE: result.forwardPE as number | undefined,
+    epsForward: result.epsForward as number | undefined,
+    averageDailyVolume3Month: result.averageDailyVolume3Month as number | undefined,
+    updatedAt: Date.now(),
+  };
+}
+
 export function createYahooProvider(): IStockProvider {
   return {
     async getQuote(symbol: string): Promise<Quote> {
@@ -67,58 +118,13 @@ export function createYahooProvider(): IStockProvider {
         yf.quoteSummary(symbol, { modules: ['financialData'] }).catch(() => null),
       ]);
       const fd = summary?.financialData as Record<string, unknown> | undefined;
-      const fdNum = (key: string): number | undefined => {
-        const val = fd?.[key];
-        if (val == null) return undefined;
-        if (typeof val === 'number') return val;
-        if (typeof val === 'object' && val !== null && 'raw' in (val as Record<string, unknown>))
-          return (val as Record<string, unknown>).raw as number;
-        return undefined;
-      };
-      return {
-        symbol: result.symbol,
-        name: result.shortName || result.longName || result.symbol,
-        price: result.regularMarketPrice ?? 0,
-        change: result.regularMarketChange ?? 0,
-        changePercent: result.regularMarketChangePercent ?? 0,
-        open: result.regularMarketOpen ?? 0,
-        high: result.regularMarketDayHigh ?? 0,
-        low: result.regularMarketDayLow ?? 0,
-        previousClose: result.regularMarketPreviousClose ?? 0,
-        volume: result.regularMarketVolume ?? 0,
-        marketCap: result.marketCap,
-        exchange: result.exchange,
-        currency: result.currency,
-        preMarketPrice: (result as Record<string, unknown>).preMarketPrice as number | undefined,
-        preMarketChange: (result as Record<string, unknown>).preMarketChange as number | undefined,
-        preMarketChangePercent: (result as Record<string, unknown>).preMarketChangePercent as number | undefined,
-        postMarketPrice: (result as Record<string, unknown>).postMarketPrice as number | undefined,
-        postMarketChange: (result as Record<string, unknown>).postMarketChange as number | undefined,
-        postMarketChangePercent: (result as Record<string, unknown>).postMarketChangePercent as number | undefined,
-        fiftyTwoWeekHigh: result.fiftyTwoWeekHigh,
-        fiftyTwoWeekLow: result.fiftyTwoWeekLow,
-        trailingPE: result.trailingPE,
-        epsTrailingTwelveMonths: result.epsTrailingTwelveMonths,
-        priceToBook: result.priceToBook,
-        earningsTimestamp: result.earningsTimestamp ? new Date(result.earningsTimestamp as unknown as string | number).getTime() : undefined,
-        fullTimeEmployees: (result as Record<string, unknown>).fullTimeEmployees as number | undefined,
-        targetMeanPrice: fdNum('targetMeanPrice'),
-        targetHighPrice: fdNum('targetHighPrice'),
-        targetLowPrice: fdNum('targetLowPrice'),
-        numberOfAnalystOpinions: fdNum('numberOfAnalystOpinions'),
-        recommendationKey: fd?.recommendationKey as string | undefined,
-        recommendationMean: fdNum('recommendationMean'),
-        beta: result.beta,
-        dividendYield: result.dividendYield,
-        forwardPE: result.forwardPE,
-        epsForward: result.epsForward,
-        averageDailyVolume3Month: result.averageDailyVolume3Month,
-        updatedAt: Date.now(),
-      };
+      return mapYahooResult(result as unknown as Record<string, unknown>, fd);
     },
 
     async getQuotes(symbols: string[]): Promise<Quote[]> {
-      return Promise.all(symbols.map((s) => this.getQuote(s)));
+      const yf = await getYf();
+      const results = await yf.quote(symbols);
+      return results.map((r) => mapYahooResult(r as unknown as Record<string, unknown>));
     },
 
     async searchSymbols(query: string): Promise<SearchResult[]> {

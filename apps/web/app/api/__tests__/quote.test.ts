@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mockGetQuote = vi.fn();
+const mockGetQuotes = vi.fn();
 
 vi.mock('@alpha-stocks/core/providers', () => ({
   createStockProvider: () => ({
     getQuote: mockGetQuote,
+    getQuotes: mockGetQuotes,
   }),
 }));
 
@@ -41,20 +43,22 @@ describe('GET /api/stocks/quote', () => {
   });
 
   it('returns batch quotes', async () => {
-    mockGetQuote
-      .mockResolvedValueOnce({ symbol: 'AAPL', price: 150 })
-      .mockResolvedValueOnce({ symbol: 'GOOGL', price: 2800 });
+    mockGetQuotes.mockResolvedValue([
+      { symbol: 'AAPL', price: 150 },
+      { symbol: 'GOOGL', price: 2800 },
+    ]);
 
     const res = await GET(makeRequest({ symbols: 'AAPL,GOOGL' }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(2);
+    expect(mockGetQuotes).toHaveBeenCalledWith(['AAPL', 'GOOGL']);
   });
 
-  it('handles partial failures in batch gracefully', async () => {
-    mockGetQuote
-      .mockResolvedValueOnce({ symbol: 'AAPL', price: 150 })
-      .mockRejectedValueOnce(new Error('Not found'));
+  it('handles batch with missing symbols gracefully', async () => {
+    mockGetQuotes.mockResolvedValue([
+      { symbol: 'AAPL', price: 150 },
+    ]);
 
     const res = await GET(makeRequest({ symbols: 'AAPL,INVALID' }));
     expect(res.status).toBe(200);
