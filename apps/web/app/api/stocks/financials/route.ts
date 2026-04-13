@@ -52,12 +52,11 @@ async function fetchAlphaVantageData(symbol: string): Promise<{
   if (!apiKey) return { annuals: [], quarters: [] };
 
   try {
-    const [incomeRes, earningsRes] = await Promise.all([
-      fetch(`https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${symbol}&apikey=${apiKey}`),
-      fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${symbol}&apikey=${apiKey}`),
-    ]);
-
+    // Sequential calls — Alpha Vantage free tier limits to 5 req/min
+    const incomeRes = await fetch(`https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${symbol}&apikey=${apiKey}`);
     const incomeData = incomeRes.ok ? await incomeRes.json() : {};
+
+    const earningsRes = await fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${symbol}&apikey=${apiKey}`);
     const earningsData = earningsRes.ok ? await earningsRes.json() : {};
 
     // Annual financials (10+ years)

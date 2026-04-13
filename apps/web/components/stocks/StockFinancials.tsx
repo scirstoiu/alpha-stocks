@@ -50,7 +50,7 @@ function RevenueNetIncomeChart({ data }: {
             </span>
           ))}
         </div>
-        <div className="flex-1 flex items-end gap-0.5 relative" style={{ height: CHART_HEIGHT }}>
+        <div className="flex-1 flex items-end gap-0.5 relative pt-5" style={{ height: CHART_HEIGHT }}>
           {yTicks.map((v, i) => (
             <div
               key={i}
@@ -70,13 +70,13 @@ function RevenueNetIncomeChart({ data }: {
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
               >
-                {/* YoY growth % on top of revenue bar */}
+                <div className="flex items-end gap-0.5 w-full justify-center relative">
+                {/* YoY growth % above the blue bar */}
                 {yoyGrowth !== null && (
-                  <span className={`text-xs font-semibold mb-0.5 self-start ml-0.5 ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
+                  <span className={`absolute -top-4 left-0 right-0 text-center text-xs font-semibold ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
                     {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
                   </span>
                 )}
-                <div className="flex items-end gap-0.5 w-full justify-center">
                   <div
                     className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
                     style={{ height: barHeight(d.revenue) }}
