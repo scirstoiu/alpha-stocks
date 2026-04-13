@@ -4,10 +4,11 @@ import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 
 const SCREEN_WIDTH = Dimensions.get('window').width - 32;
-const CHART_HEIGHT = 260;
+const CHART_HEIGHT = 280;
 const Y_LABEL_WIDTH = 50;
 const CHART_INNER_WIDTH = SCREEN_WIDTH - Y_LABEL_WIDTH;
 const Y_TICKS = 6;
+const TOP_PADDING = 28; // room for YoY labels
 
 type ChartMode = 'annual' | 'quarterly';
 
@@ -27,14 +28,15 @@ function BarChart({
   const allVals = data.flatMap((d) => [d.revenue, d.netIncome]);
   const maxVal = Math.max(...allVals.map(Math.abs)) || 1;
 
+  const barArea = CHART_HEIGHT - TOP_PADDING - 20; // space between top padding and x-axis
   const ticks = Array.from({ length: Y_TICKS }, (_, i) => {
     const value = maxVal - (maxVal * i) / (Y_TICKS - 1);
-    const y = 10 + (i / (Y_TICKS - 1)) * (CHART_HEIGHT - 30);
+    const y = TOP_PADDING + (i / (Y_TICKS - 1)) * barArea;
     return { value, y };
   });
 
   const barGroupWidth = CHART_INNER_WIDTH / data.length;
-  const barWidth = Math.min(barGroupWidth * 0.35, 16);
+  const barWidth = Math.min(barGroupWidth * 0.38, 20);
   const gap = 2;
 
   return (
@@ -55,20 +57,37 @@ function BarChart({
           <Line key={`g${i}`} x1={Y_LABEL_WIDTH} y1={tick.y} x2={SCREEN_WIDTH} y2={tick.y} stroke="#f3f4f6" strokeWidth={1} />
         ))}
         {ticks.map((tick, i) => (
-          <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={10} fill="#9ca3af" textAnchor="end">
+          <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={11} fill="#6b7280" textAnchor="end">
             {fmtCompact(tick.value)}
           </SvgText>
         ))}
-        {/* Bars */}
+        {/* Bars + YoY labels */}
         {data.map((d, i) => {
           const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
-          const revH = (d.revenue / maxVal) * (CHART_HEIGHT - 30);
-          const niH = (Math.abs(d.netIncome) / maxVal) * (CHART_HEIGHT - 30);
+          const revH = (d.revenue / maxVal) * barArea;
+          const niH = (Math.abs(d.netIncome) / maxVal) * barArea;
+          const prevRevenue = i > 0 ? data[i - 1].revenue : null;
+          const yoyGrowth = prevRevenue && prevRevenue > 0
+            ? ((d.revenue - prevRevenue) / prevRevenue) * 100
+            : null;
+          const revTop = TOP_PADDING + barArea - revH;
           return (
             <View key={i}>
+              {yoyGrowth !== null && (
+                <SvgText
+                  x={cx - gap / 2}
+                  y={revTop - 4}
+                  fontSize={9}
+                  fontWeight="600"
+                  fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
+                  textAnchor="middle"
+                >
+                  {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                </SvgText>
+              )}
               <Rect
                 x={cx - barWidth - gap / 2}
-                y={CHART_HEIGHT - 20 - revH}
+                y={revTop}
                 width={barWidth}
                 height={revH}
                 rx={2}
@@ -76,7 +95,7 @@ function BarChart({
               />
               <Rect
                 x={cx + gap / 2}
-                y={CHART_HEIGHT - 20 - niH}
+                y={TOP_PADDING + barArea - niH}
                 width={barWidth}
                 height={niH}
                 rx={2}
@@ -127,14 +146,14 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
   const hasAnnual = annualFinancials.length > 0;
   const hasEarnings = quarterlyEarnings && quarterlyEarnings.length > 0;
 
-  const annualChartData = annualFinancials.slice(-10).map((d) => ({
+  const annualChartData = annualFinancials.slice(-8).map((d) => ({
     revenue: d.revenue,
     netIncome: d.netIncome,
   }));
-  const annualLabels = annualFinancials.slice(-10).map((d) => d.date.slice(0, 4));
+  const annualLabels = annualFinancials.slice(-8).map((d) => d.date.slice(0, 4));
 
   const quarterlyFiltered = hasEarnings
-    ? quarterlyEarnings.filter((q) => q.revenue != null && q.revenue > 0).slice(-12)
+    ? quarterlyEarnings.filter((q) => q.revenue != null && q.revenue > 0).slice(-8)
     : [];
   const quarterlyChartData = quarterlyFiltered.map((q) => ({
     revenue: q.revenue ?? 0,
