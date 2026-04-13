@@ -83,7 +83,7 @@ function BarChart({
               <View key={i}>
                 {yoyGrowth !== null && (
                   <SvgText
-                    x={cx - gap / 2}
+                    x={cx - barWidth / 2 - gap / 2}
                     y={revTop - 5}
                     fontSize={12}
                     fontWeight="700"
@@ -151,7 +151,7 @@ function BarChart({
           const cx = Y_LABEL_WIDTH + barGroupWidth * selected + barGroupWidth / 2;
           const revH = (d.revenue / maxVal) * barArea;
           const tooltipTop = TOP_PADDING + barArea - revH - 80;
-          const tooltipLeft = Math.min(Math.max(cx - 70, 0), SCREEN_WIDTH - 140);
+          const tooltipLeft = Math.min(Math.max(cx - 80, 0), SCREEN_WIDTH - 160);
           return (
             <View style={[barStyles.tooltip, { top: Math.max(tooltipTop, 0), left: tooltipLeft }]}>
               <Text style={barStyles.tooltipTitle}>{label}</Text>
@@ -189,19 +189,19 @@ const barStyles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    width: 140,
+    width: 160,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
-  tooltipTitle: { color: '#fff', fontWeight: '700', fontSize: 14, marginBottom: 4 },
-  tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
+  tooltipTitle: { color: '#fff', fontWeight: '700', fontSize: 16, marginBottom: 5 },
+  tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
   tooltipDot: { width: 8, height: 8, borderRadius: 4 },
-  tooltipLabel: { color: '#9ca3af', fontSize: 12 },
-  tooltipValue: { color: '#fff', fontWeight: '600', fontSize: 12 },
-  tooltipYoy: { fontWeight: '600', fontSize: 12, marginTop: 2 },
+  tooltipLabel: { color: '#9ca3af', fontSize: 14 },
+  tooltipValue: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  tooltipYoy: { fontWeight: '600', fontSize: 14, marginTop: 3 },
 });
 
 export default function StockFinancials({ symbol }: { symbol: string }) {
