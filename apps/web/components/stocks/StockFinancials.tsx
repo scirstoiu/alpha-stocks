@@ -58,40 +58,57 @@ function RevenueNetIncomeChart({ data }: {
               style={{ bottom: `${(v / range) * 100}%` }}
             />
           ))}
-          {limited.map((d, i) => (
-            <div
-              key={i}
-              className="flex-1 flex flex-col items-center justify-end h-full relative z-10 cursor-pointer"
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-            >
-              <div className="flex items-end gap-0.5 w-full justify-center">
-                <div
-                  className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
-                  style={{ height: barHeight(d.revenue) }}
-                />
-                <div
-                  className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
-                  style={{ height: barHeight(d.netIncome) }}
-                />
-              </div>
-              {hovered === i && (
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-lg z-50 pointer-events-none">
-                  <div className="font-bold text-sm mb-1">{d.date.slice(0, 4)}</div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                    <span className="text-gray-300">Revenue:</span>
-                    <span className="font-semibold">{fmtCompact2(d.revenue)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="text-gray-300">Net Income:</span>
-                    <span className="font-semibold">{fmtCompact2(d.netIncome)}</span>
-                  </div>
+          {limited.map((d, i) => {
+            const prevRevenue = i > 0 ? limited[i - 1].revenue : null;
+            const yoyGrowth = prevRevenue && prevRevenue > 0
+              ? ((d.revenue - prevRevenue) / prevRevenue) * 100
+              : null;
+            return (
+              <div
+                key={i}
+                className="flex-1 flex flex-col items-center justify-end h-full relative z-10 cursor-pointer"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                {/* YoY growth % on top of revenue bar */}
+                {yoyGrowth !== null && (
+                  <span className={`text-[10px] font-medium mb-0.5 ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
+                    {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
+                  </span>
+                )}
+                <div className="flex items-end gap-0.5 w-full justify-center">
+                  <div
+                    className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
+                    style={{ height: barHeight(d.revenue) }}
+                  />
+                  <div
+                    className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
+                    style={{ height: barHeight(d.netIncome) }}
+                  />
                 </div>
-              )}
-            </div>
-          ))}
+                {hovered === i && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-lg z-50 pointer-events-none">
+                    <div className="font-bold text-sm mb-1">{d.date.slice(0, 4)}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-gray-300">Revenue:</span>
+                      <span className="font-semibold">{fmtCompact2(d.revenue)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      <span className="text-gray-300">Net Income:</span>
+                      <span className="font-semibold">{fmtCompact2(d.netIncome)}</span>
+                    </div>
+                    {yoyGrowth !== null && (
+                      <div className={`mt-1 font-medium ${yoyGrowth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        YoY: {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="flex ml-8">
@@ -155,9 +172,9 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                   <th className="text-left py-1.5 font-medium text-gray-400">Quarter</th>
                   <th className="text-right py-1.5 font-medium text-gray-400">EPS Est.</th>
                   <th className="text-right py-1.5 font-medium text-gray-400">EPS Act.</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">Revenue</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">Earnings</th>
                   <th className="text-right py-1.5 font-medium text-gray-400">Surprise</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">Rev. Est.</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">Rev. Act.</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,11 +187,11 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                       <td className="py-1.5 font-medium">{q.quarter}</td>
                       <td className="py-1.5 text-right text-gray-500">{q.epsEstimate != null ? `$${q.epsEstimate.toFixed(2)}` : '—'}</td>
                       <td className="py-1.5 text-right font-medium">{q.epsActual != null ? `$${q.epsActual.toFixed(2)}` : '—'}</td>
+                      <td className="py-1.5 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
+                      <td className="py-1.5 text-right text-gray-500">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
                       <td className={`py-1.5 text-right font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
                         {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
                       </td>
-                      <td className="py-1.5 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
-                      <td className="py-1.5 text-right font-medium">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
                     </tr>
                   );
                 })}
