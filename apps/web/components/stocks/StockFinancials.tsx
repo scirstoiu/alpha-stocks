@@ -5,8 +5,8 @@ import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
 
-const CHART_HEIGHT = 260;
-const Y_TICKS = 6;
+const CHART_HEIGHT = 320;
+const Y_TICKS = 7;
 
 function fmtCompact2(value: number): string {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
@@ -50,7 +50,7 @@ function RevenueNetIncomeChart({ data }: {
             </span>
           ))}
         </div>
-        <div className="flex-1 flex items-end gap-0.5 relative pt-5" style={{ height: CHART_HEIGHT }}>
+        <div className="flex-1 flex items-end gap-0.5 relative" style={{ height: CHART_HEIGHT }}>
           {yTicks.map((v, i) => (
             <div
               key={i}
@@ -70,17 +70,18 @@ function RevenueNetIncomeChart({ data }: {
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
               >
-                <div className="flex items-end gap-0.5 w-full justify-center relative">
-                {/* YoY growth % above the blue bar */}
-                {yoyGrowth !== null && (
-                  <span className={`absolute -top-4 left-0 right-0 text-center text-xs font-semibold ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
-                    {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
-                  </span>
-                )}
-                  <div
-                    className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
-                    style={{ height: barHeight(d.revenue) }}
-                  />
+                <div className="flex items-end gap-0.5 w-full justify-center">
+                  <div className="flex-1 max-w-7 flex flex-col items-center">
+                    {yoyGrowth !== null && (
+                      <span className={`text-[11px] font-semibold mb-0.5 whitespace-nowrap ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
+                        {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                      </span>
+                    )}
+                    <div
+                      className={`w-full rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
+                      style={{ height: barHeight(d.revenue) }}
+                    />
+                  </div>
                   <div
                     className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
                     style={{ height: barHeight(d.netIncome) }}
