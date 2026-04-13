@@ -5,8 +5,12 @@ import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
 
-const CHART_HEIGHT = 280;
+const CHART_HEIGHT = 260;
 const Y_TICKS = 6;
+
+function fmtCompact2(value: number): string {
+  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
+}
 
 function RevenueNetIncomeChart({ data }: {
   data: { date: string; revenue: number; netIncome: number }[];
@@ -15,7 +19,6 @@ function RevenueNetIncomeChart({ data }: {
 
   if (data.length === 0) return null;
 
-  // Limit to last 10 years
   const limited = data.slice(-10);
 
   const allVals = limited.flatMap((d) => [d.revenue, d.netIncome]);
@@ -29,7 +32,7 @@ function RevenueNetIncomeChart({ data }: {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-3">
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <span className="w-3 h-3 rounded-sm bg-blue-500" />
           Revenue
@@ -40,7 +43,6 @@ function RevenueNetIncomeChart({ data }: {
         </div>
       </div>
       <div className="flex relative">
-        {/* Y-axis labels */}
         <div className="flex flex-col justify-between pr-2 shrink-0" style={{ height: CHART_HEIGHT }}>
           {yTicks.map((v, i) => (
             <span key={i} className="text-[11px] text-gray-400 text-right leading-none">
@@ -48,9 +50,7 @@ function RevenueNetIncomeChart({ data }: {
             </span>
           ))}
         </div>
-        {/* Bars area */}
         <div className="flex-1 flex items-end gap-0.5 relative" style={{ height: CHART_HEIGHT }}>
-          {/* Grid lines */}
           {yTicks.map((v, i) => (
             <div
               key={i}
@@ -67,27 +67,26 @@ function RevenueNetIncomeChart({ data }: {
             >
               <div className="flex items-end gap-0.5 w-full justify-center">
                 <div
-                  className={`flex-1 max-w-8 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
+                  className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
                   style={{ height: barHeight(d.revenue) }}
                 />
                 <div
-                  className={`flex-1 max-w-8 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
+                  className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
                   style={{ height: barHeight(d.netIncome) }}
                 />
               </div>
-              {/* Tooltip */}
               {hovered === i && (
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white rounded-lg px-3 py-2 text-xs whitespace-nowrap shadow-lg z-50 pointer-events-none">
                   <div className="font-bold text-sm mb-1">{d.date.slice(0, 4)}</div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-400" />
                     <span className="text-gray-300">Revenue:</span>
-                    <span className="font-semibold">{formatCompactNumber(d.revenue)}</span>
+                    <span className="font-semibold">{fmtCompact2(d.revenue)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
                     <span className="text-gray-300">Net Income:</span>
-                    <span className="font-semibold">{formatCompactNumber(d.netIncome)}</span>
+                    <span className="font-semibold">{fmtCompact2(d.netIncome)}</span>
                   </div>
                 </div>
               )}
@@ -95,7 +94,6 @@ function RevenueNetIncomeChart({ data }: {
           ))}
         </div>
       </div>
-      {/* X-axis labels */}
       <div className="flex ml-8">
         {limited.map((d, i) => (
           <div key={i} className="flex-1 text-center">
@@ -103,69 +101,6 @@ function RevenueNetIncomeChart({ data }: {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function QuarterlyEarningsTable({ data }: {
-  data: { quarter: string; epsEstimate: number | null; epsActual: number | null; revenue: number | null; earnings: number | null }[];
-}) {
-  if (data.length === 0) return null;
-
-  return (
-    <div>
-      <h3 className="font-semibold mb-3 text-sm">Quarterly Earnings</h3>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200">
-            <th className="text-left py-1.5 font-medium text-gray-400 text-xs">Quarter</th>
-            <th className="text-right py-1.5 font-medium text-gray-400 text-xs">EPS Est.</th>
-            <th className="text-right py-1.5 font-medium text-gray-400 text-xs">EPS Act.</th>
-            <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Surprise</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((q, i) => {
-            const surprise = q.epsActual != null && q.epsEstimate != null
-              ? q.epsActual - q.epsEstimate
-              : null;
-            return (
-              <tr key={i} className="border-b border-gray-50">
-                <td className="py-1.5 font-medium text-xs">{q.quarter}</td>
-                <td className="py-1.5 text-right text-xs text-gray-500">{q.epsEstimate != null ? `$${q.epsEstimate.toFixed(2)}` : '—'}</td>
-                <td className="py-1.5 text-right text-xs font-medium">{q.epsActual != null ? `$${q.epsActual.toFixed(2)}` : '—'}</td>
-                <td className={`py-1.5 text-right text-xs font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
-                  {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {/* Quarterly revenue if available */}
-      {data.some((q) => q.revenue != null) && (
-        <>
-          <h3 className="font-semibold mb-3 mt-5 text-sm">Quarterly Revenue</h3>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-1.5 font-medium text-gray-400 text-xs">Quarter</th>
-                <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Revenue</th>
-                <th className="text-right py-1.5 font-medium text-gray-400 text-xs">Earnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((q, i) => (
-                <tr key={i} className="border-b border-gray-50">
-                  <td className="py-1.5 font-medium text-xs">{q.quarter}</td>
-                  <td className="py-1.5 text-right text-xs">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
-                  <td className="py-1.5 text-right text-xs">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
     </div>
   );
 }
@@ -202,8 +137,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-6">
-      {/* Left: Revenue & Net Income chart */}
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start">
       {hasChart && (
         <Card>
           <h3 className="font-semibold mb-4">Revenue & Net Income (Annual)</h3>
@@ -211,10 +145,42 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
         </Card>
       )}
 
-      {/* Right: Quarterly Earnings */}
       {hasEarnings && (
-        <Card>
-          <QuarterlyEarningsTable data={quarterlyEarnings} />
+        <Card className="md:w-[420px]">
+          <h3 className="font-semibold mb-3 text-sm">Quarterly Earnings</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-1.5 font-medium text-gray-400">Quarter</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">EPS Est.</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">EPS Act.</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">Surprise</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">Rev. Est.</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">Rev. Act.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quarterlyEarnings.map((q, i) => {
+                  const surprise = q.epsActual != null && q.epsEstimate != null
+                    ? q.epsActual - q.epsEstimate
+                    : null;
+                  return (
+                    <tr key={i} className="border-b border-gray-50">
+                      <td className="py-1.5 font-medium">{q.quarter}</td>
+                      <td className="py-1.5 text-right text-gray-500">{q.epsEstimate != null ? `$${q.epsEstimate.toFixed(2)}` : '—'}</td>
+                      <td className="py-1.5 text-right font-medium">{q.epsActual != null ? `$${q.epsActual.toFixed(2)}` : '—'}</td>
+                      <td className={`py-1.5 text-right font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
+                        {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
+                      </td>
+                      <td className="py-1.5 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
+                      <td className="py-1.5 text-right font-medium">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </div>
