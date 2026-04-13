@@ -120,8 +120,12 @@ export async function GET(request: NextRequest) {
   const upper = symbol.toUpperCase();
   const cacheKey = `financials:${upper}`;
 
-  const cached = await getCached(cacheKey);
-  if (cached) return NextResponse.json(cached);
+  // Use cache only if it has rich data (>4 years annual or >4 quarters)
+  const cached = await getCached(cacheKey) as { annualFinancials?: unknown[]; quarterlyEarnings?: unknown[] } | null;
+  const cacheIsRich = cached
+    && (cached.annualFinancials?.length ?? 0) > 5
+    && (cached.quarterlyEarnings?.length ?? 0) > 5;
+  if (cached && cacheIsRich) return NextResponse.json(cached);
 
   try {
     const [yahooFinancials, alphaData] = await Promise.all([
@@ -139,7 +143,14 @@ export async function GET(request: NextRequest) {
         : yahooFinancials.quarterlyEarnings,
     };
 
-    setCache(cacheKey, result);
+    // Only cache if we got rich data; otherwise keep stale cache and serve what we have
+    const resultIsRich = result.annualFinancials.length > 5 || result.quarterlyEarnings.length > 5;
+    if (resultIsRich) {
+      setCache(cacheKey, result);
+    } else if (cached) {
+      // Serve stale cache — better than rate-limited data
+      return NextResponse.json(cached);
+    }
 
     return NextResponse.json(result);
   } catch (error) {
