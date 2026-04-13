@@ -72,7 +72,7 @@ function RevenueNetIncomeChart({ data }: {
               >
                 {/* YoY growth % on top of revenue bar */}
                 {yoyGrowth !== null && (
-                  <span className={`text-[10px] font-medium mb-0.5 ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
+                  <span className={`text-xs font-semibold mb-0.5 self-start ml-0.5 ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
                     {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
                   </span>
                 )}
@@ -173,7 +173,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                   <th className="text-right py-1.5 font-medium text-gray-400">EPS Est.</th>
                   <th className="text-right py-1.5 font-medium text-gray-400">EPS Act.</th>
                   <th className="text-right py-1.5 font-medium text-gray-400">Revenue</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">Earnings</th>
+                  <th className="text-right py-1.5 font-medium text-gray-400">Net Income</th>
                   <th className="text-right py-1.5 font-medium text-gray-400">Surprise</th>
                 </tr>
               </thead>

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createStockProvider } from '@alpha-stocks/core/providers';
-import type { AnnualFinancial } from '@alpha-stocks/core';
+import type { AnnualFinancial, QuarterlyEarning } from '@alpha-stocks/core';
 
 const provider = createStockProvider(process.env.FINNHUB_API_KEY);
 
-const CACHE_TTL_DAYS = 7; // Financial data changes at most quarterly
+const CACHE_TTL_DAYS = 7;
 
-// Server-side Supabase client for caching
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -40,26 +39,30 @@ async function setCache(key: string, value: unknown) {
       .from('api_cache')
       .upsert({ key, data: value, expires_at }, { onConflict: 'key' });
   } catch {
-    // Cache write failure is non-critical
+    // non-critical
   }
 }
 
-// Fetch annual income statements from Alpha Vantage (10+ years)
-async function fetchAlphaVantageAnnuals(symbol: string): Promise<AnnualFinancial[]> {
+// Fetch from Alpha Vantage: annual + quarterly income statements AND quarterly earnings (EPS)
+async function fetchAlphaVantageData(symbol: string): Promise<{
+  annuals: AnnualFinancial[];
+  quarters: QuarterlyEarning[];
+}> {
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) return { annuals: [], quarters: [] };
 
   try {
-    const res = await fetch(
-      `https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${symbol}&apikey=${apiKey}`,
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
+    const [incomeRes, earningsRes] = await Promise.all([
+      fetch(`https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${symbol}&apikey=${apiKey}`),
+      fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${symbol}&apikey=${apiKey}`),
+    ]);
 
-    const reports = data.annualReports;
-    if (!Array.isArray(reports)) return [];
+    const incomeData = incomeRes.ok ? await incomeRes.json() : {};
+    const earningsData = earningsRes.ok ? await earningsRes.json() : {};
 
-    return reports
+    // Annual financials (10+ years)
+    const annualReports = incomeData.annualReports || [];
+    const annuals: AnnualFinancial[] = annualReports
       .map((r: Record<string, string>) => ({
         date: r.fiscalDateEnding || '',
         revenue: parseFloat(r.totalRevenue) || 0,
@@ -69,8 +72,39 @@ async function fetchAlphaVantageAnnuals(symbol: string): Promise<AnnualFinancial
       }))
       .filter((d: AnnualFinancial) => d.date && (d.revenue > 0 || d.netIncome !== 0))
       .sort((a: AnnualFinancial, b: AnnualFinancial) => a.date.localeCompare(b.date));
+
+    // Quarterly revenue from income statement
+    const qReports = incomeData.quarterlyReports || [];
+    const qRevenueMap = new Map<string, { revenue: number; netIncome: number }>();
+    for (const r of qReports as Record<string, string>[]) {
+      const date = r.fiscalDateEnding || '';
+      if (date) qRevenueMap.set(date, { revenue: parseFloat(r.totalRevenue) || 0, netIncome: parseFloat(r.netIncome) || 0 });
+    }
+
+    // Quarterly EPS from earnings
+    const qEarnings = (earningsData.quarterlyEarnings || []).slice(0, 10) as Record<string, string>[];
+    const quarters: QuarterlyEarning[] = qEarnings.map((e) => {
+      const date = e.fiscalDateEnding || '';
+      const rev = qRevenueMap.get(date);
+      // Build quarter label from date (e.g. "2025-11-30" -> "4Q2025" for fiscal year ending Nov)
+      const d = new Date(date);
+      const month = d.getMonth() + 1;
+      const year = d.getFullYear();
+      const qNum = Math.ceil(month / 3);
+      const quarter = `${qNum}Q${year}`;
+      return {
+        date,
+        quarter,
+        epsEstimate: e.estimatedEPS ? parseFloat(e.estimatedEPS) : null,
+        epsActual: e.reportedEPS ? parseFloat(e.reportedEPS) : null,
+        revenue: rev?.revenue ?? null,
+        earnings: rev?.netIncome ?? null,
+      };
+    }).reverse(); // oldest first
+
+    return { annuals, quarters };
   } catch {
-    return [];
+    return { annuals: [], quarters: [] };
   }
 }
 
@@ -84,26 +118,25 @@ export async function GET(request: NextRequest) {
   const upper = symbol.toUpperCase();
   const cacheKey = `financials:${upper}`;
 
-  // Check Supabase cache first
   const cached = await getCached(cacheKey);
   if (cached) return NextResponse.json(cached);
 
   try {
-    // Fetch Yahoo (for quarterly earnings + metrics) and Alpha Vantage (for 10yr annuals) in parallel
-    const [yahooFinancials, alphaAnnuals] = await Promise.all([
+    const [yahooFinancials, alphaData] = await Promise.all([
       provider.getFinancials(upper),
-      fetchAlphaVantageAnnuals(upper),
+      fetchAlphaVantageData(upper),
     ]);
 
-    // Use Alpha Vantage annuals if available (10+ years), otherwise fall back to Yahoo (4 years)
     const result = {
       ...yahooFinancials,
-      annualFinancials: alphaAnnuals.length > yahooFinancials.annualFinancials.length
-        ? alphaAnnuals
+      annualFinancials: alphaData.annuals.length > yahooFinancials.annualFinancials.length
+        ? alphaData.annuals
         : yahooFinancials.annualFinancials,
+      quarterlyEarnings: alphaData.quarters.length > yahooFinancials.quarterlyEarnings.length
+        ? alphaData.quarters
+        : yahooFinancials.quarterlyEarnings,
     };
 
-    // Cache in Supabase (non-blocking)
     setCache(cacheKey, result);
 
     return NextResponse.json(result);
