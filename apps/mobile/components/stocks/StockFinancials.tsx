@@ -68,33 +68,15 @@ function BarChart({
               {fmtCompact(tick.value)}
             </SvgText>
           ))}
-          {/* Bars + YoY labels */}
+          {/* Bars */}
           {data.map((d, i) => {
             const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
             const revH = (d.revenue / maxVal) * barArea;
             const niH = (Math.abs(d.netIncome) / maxVal) * barArea;
-            const prevRevenue = i > 0 ? data[i - 1].revenue : null;
-            const yoyGrowth = prevRevenue && prevRevenue > 0
-              ? ((d.revenue - prevRevenue) / prevRevenue) * 100
-              : null;
             const revTop = TOP_PADDING + barArea - revH;
-            const revCenterX = cx - barWidth / 2 - gap / 2;
             const dimmed = selected !== null && selected !== i;
             return (
               <View key={i}>
-                {yoyGrowth !== null && (
-                  <SvgText
-                    x={cx - gap / 2}
-                    y={revTop - 5}
-                    fontSize={11}
-                    fontWeight="700"
-                    fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
-                    textAnchor="end"
-                    opacity={dimmed ? 0.3 : 1}
-                  >
-                    {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
-                  </SvgText>
-                )}
                 <Rect
                   x={cx - barWidth - gap / 2}
                   y={revTop}
@@ -126,6 +108,36 @@ function BarChart({
             );
           })}
         </Svg>
+        {/* YoY labels as native Text (SVG text renders poorly on Android) */}
+        {data.map((d, i) => {
+          const prevRevenue = i > 0 ? data[i - 1].revenue : null;
+          const yoyGrowth = prevRevenue && prevRevenue > 0
+            ? ((d.revenue - prevRevenue) / prevRevenue) * 100
+            : null;
+          if (yoyGrowth === null) return null;
+          const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
+          const revH = (d.revenue / maxVal) * barArea;
+          const revTop = TOP_PADDING + barArea - revH;
+          const dimmed = selected !== null && selected !== i;
+          return (
+            <Text
+              key={`yoy${i}`}
+              style={{
+                position: 'absolute',
+                top: revTop - 18,
+                left: cx - barWidth - gap / 2,
+                width: barWidth * 2 + gap,
+                textAlign: 'center',
+                fontSize: 10,
+                fontWeight: '700',
+                color: yoyGrowth >= 0 ? '#16a34a' : '#dc2626',
+                opacity: dimmed ? 0.3 : 1,
+              }}
+            >
+              {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
+            </Text>
+          );
+        })}
         {/* Touch overlays for bar tap */}
         {data.map((_, i) => (
           <TouchableOpacity
