@@ -91,7 +91,7 @@ function BarChart({
                     textAnchor="middle"
                     opacity={dimmed ? 0.3 : 1}
                   >
-                    {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                    {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
                   </SvgText>
                 )}
                 <Rect
@@ -225,11 +225,11 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
   const hasAnnual = annualFinancials.length > 0;
   const hasEarnings = quarterlyEarnings && quarterlyEarnings.length > 0;
 
-  const annualChartData = annualFinancials.slice(-8).map((d) => ({
+  const annualChartData = annualFinancials.slice(-6).map((d) => ({
     revenue: d.revenue,
     netIncome: d.netIncome,
   }));
-  const annualLabels = annualFinancials.slice(-8).map((d) => d.date.slice(0, 4));
+  const annualLabels = annualFinancials.slice(-6).map((d) => d.date.slice(0, 4));
 
   const quarterlyFiltered = hasEarnings
     ? quarterlyEarnings.filter((q) => q.revenue != null && q.revenue > 0).slice(-6)
