@@ -16,6 +16,10 @@ function fmtCompact(value: number): string {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 }
 
+function fmtCompact2(value: number): string {
+  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
+}
+
 function BarChart({
   data,
   labels,
@@ -23,12 +27,14 @@ function BarChart({
   data: { revenue: number; netIncome: number }[];
   labels: string[];
 }) {
+  const [selected, setSelected] = useState<number | null>(null);
+
   if (data.length === 0) return null;
 
   const allVals = data.flatMap((d) => [d.revenue, d.netIncome]);
   const maxVal = Math.max(...allVals.map(Math.abs)) || 1;
 
-  const barArea = CHART_HEIGHT - TOP_PADDING - 20; // space between top padding and x-axis
+  const barArea = CHART_HEIGHT - TOP_PADDING - 20;
   const ticks = Array.from({ length: Y_TICKS }, (_, i) => {
     const value = maxVal - (maxVal * i) / (Y_TICKS - 1);
     const y = TOP_PADDING + (i / (Y_TICKS - 1)) * barArea;
@@ -51,69 +57,117 @@ function BarChart({
           <Text style={barStyles.legendText}>Net Income</Text>
         </View>
       </View>
-      <Svg width={SCREEN_WIDTH} height={CHART_HEIGHT}>
-        {/* Grid lines and Y labels */}
-        {ticks.map((tick, i) => (
-          <Line key={`g${i}`} x1={Y_LABEL_WIDTH} y1={tick.y} x2={SCREEN_WIDTH} y2={tick.y} stroke="#f3f4f6" strokeWidth={1} />
-        ))}
-        {ticks.map((tick, i) => (
-          <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={12} fill="#4b5563" textAnchor="end">
-            {fmtCompact(tick.value)}
-          </SvgText>
-        ))}
-        {/* Bars + YoY labels */}
-        {data.map((d, i) => {
-          const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
-          const revH = (d.revenue / maxVal) * barArea;
-          const niH = (Math.abs(d.netIncome) / maxVal) * barArea;
-          const prevRevenue = i > 0 ? data[i - 1].revenue : null;
+      <View>
+        <Svg width={SCREEN_WIDTH} height={CHART_HEIGHT}>
+          {/* Grid lines and Y labels */}
+          {ticks.map((tick, i) => (
+            <Line key={`g${i}`} x1={Y_LABEL_WIDTH} y1={tick.y} x2={SCREEN_WIDTH} y2={tick.y} stroke="#f3f4f6" strokeWidth={1} />
+          ))}
+          {ticks.map((tick, i) => (
+            <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={12} fill="#4b5563" textAnchor="end">
+              {fmtCompact(tick.value)}
+            </SvgText>
+          ))}
+          {/* Bars + YoY labels */}
+          {data.map((d, i) => {
+            const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
+            const revH = (d.revenue / maxVal) * barArea;
+            const niH = (Math.abs(d.netIncome) / maxVal) * barArea;
+            const prevRevenue = i > 0 ? data[i - 1].revenue : null;
+            const yoyGrowth = prevRevenue && prevRevenue > 0
+              ? ((d.revenue - prevRevenue) / prevRevenue) * 100
+              : null;
+            const revTop = TOP_PADDING + barArea - revH;
+            const dimmed = selected !== null && selected !== i;
+            return (
+              <View key={i}>
+                {yoyGrowth !== null && (
+                  <SvgText
+                    x={cx - barWidth - gap / 2}
+                    y={revTop - 5}
+                    fontSize={12}
+                    fontWeight="700"
+                    fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
+                    textAnchor="start"
+                    opacity={dimmed ? 0.3 : 1}
+                  >
+                    {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                  </SvgText>
+                )}
+                <Rect
+                  x={cx - barWidth - gap / 2}
+                  y={revTop}
+                  width={barWidth}
+                  height={revH}
+                  rx={2}
+                  fill="#3b82f6"
+                  opacity={dimmed ? 0.3 : 1}
+                />
+                <Rect
+                  x={cx + gap / 2}
+                  y={TOP_PADDING + barArea - niH}
+                  width={barWidth}
+                  height={niH}
+                  rx={2}
+                  fill="#fbbf24"
+                  opacity={dimmed ? 0.3 : 1}
+                />
+                {/* Invisible wider tap target */}
+                <Rect
+                  x={Y_LABEL_WIDTH + barGroupWidth * i}
+                  y={0}
+                  width={barGroupWidth}
+                  height={CHART_HEIGHT}
+                  fill="transparent"
+                  onPress={() => setSelected(selected === i ? null : i)}
+                />
+              </View>
+            );
+          })}
+          {/* X labels */}
+          {labels.map((label, i) => {
+            const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
+            return (
+              <SvgText key={`x${i}`} x={cx} y={CHART_HEIGHT - 4} fontSize={11} fill="#4b5563" textAnchor="middle">
+                {label}
+              </SvgText>
+            );
+          })}
+        </Svg>
+        {/* Tooltip popup */}
+        {selected !== null && (() => {
+          const d = data[selected];
+          const label = labels[selected];
+          const prevRevenue = selected > 0 ? data[selected - 1].revenue : null;
           const yoyGrowth = prevRevenue && prevRevenue > 0
             ? ((d.revenue - prevRevenue) / prevRevenue) * 100
             : null;
-          const revTop = TOP_PADDING + barArea - revH;
+          const cx = Y_LABEL_WIDTH + barGroupWidth * selected + barGroupWidth / 2;
+          const revH = (d.revenue / maxVal) * barArea;
+          const tooltipTop = TOP_PADDING + barArea - revH - 80;
+          const tooltipLeft = Math.min(Math.max(cx - 70, 0), SCREEN_WIDTH - 140);
           return (
-            <View key={i}>
+            <View style={[barStyles.tooltip, { top: Math.max(tooltipTop, 0), left: tooltipLeft }]}>
+              <Text style={barStyles.tooltipTitle}>{label}</Text>
+              <View style={barStyles.tooltipRow}>
+                <View style={[barStyles.tooltipDot, { backgroundColor: '#3b82f6' }]} />
+                <Text style={barStyles.tooltipLabel}>Revenue:</Text>
+                <Text style={barStyles.tooltipValue}>{fmtCompact2(d.revenue)}</Text>
+              </View>
+              <View style={barStyles.tooltipRow}>
+                <View style={[barStyles.tooltipDot, { backgroundColor: '#fbbf24' }]} />
+                <Text style={barStyles.tooltipLabel}>Net Income:</Text>
+                <Text style={barStyles.tooltipValue}>{fmtCompact2(d.netIncome)}</Text>
+              </View>
               {yoyGrowth !== null && (
-                <SvgText
-                  x={cx - barWidth - gap / 2}
-                  y={revTop - 5}
-                  fontSize={11}
-                  fontWeight="700"
-                  fill={yoyGrowth >= 0 ? '#16a34a' : '#dc2626'}
-                  textAnchor="start"
-                >
-                  {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(0)}%
-                </SvgText>
+                <Text style={[barStyles.tooltipYoy, { color: yoyGrowth >= 0 ? '#16a34a' : '#dc2626' }]}>
+                  YoY: {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
+                </Text>
               )}
-              <Rect
-                x={cx - barWidth - gap / 2}
-                y={revTop}
-                width={barWidth}
-                height={revH}
-                rx={2}
-                fill="#3b82f6"
-              />
-              <Rect
-                x={cx + gap / 2}
-                y={TOP_PADDING + barArea - niH}
-                width={barWidth}
-                height={niH}
-                rx={2}
-                fill="#fbbf24"
-              />
             </View>
           );
-        })}
-        {/* X labels */}
-        {labels.map((label, i) => {
-          const cx = Y_LABEL_WIDTH + barGroupWidth * i + barGroupWidth / 2;
-          return (
-            <SvgText key={`x${i}`} x={cx} y={CHART_HEIGHT - 4} fontSize={11} fill="#4b5563" textAnchor="middle">
-              {label}
-            </SvgText>
-          );
-        })}
-      </Svg>
+        })()}
+      </View>
     </View>
   );
 }
@@ -122,7 +176,26 @@ const barStyles = StyleSheet.create({
   legend: { flexDirection: 'row', gap: 16, marginBottom: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 10, height: 10, borderRadius: 2 },
-  legendText: { fontSize: 13, color: '#4b5563' },
+  legendText: { fontSize: 14, color: '#4b5563' },
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: '#1f2937',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    width: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  tooltipTitle: { color: '#fff', fontWeight: '700', fontSize: 14, marginBottom: 4 },
+  tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
+  tooltipDot: { width: 8, height: 8, borderRadius: 4 },
+  tooltipLabel: { color: '#9ca3af', fontSize: 12 },
+  tooltipValue: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  tooltipYoy: { fontWeight: '600', fontSize: 12, marginTop: 2 },
 });
 
 export default function StockFinancials({ symbol }: { symbol: string }) {
