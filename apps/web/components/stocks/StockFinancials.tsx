@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useFinancials, formatCompactNumber } from '@alpha-stocks/core';
 import Skeleton from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
@@ -13,9 +13,10 @@ function fmtCompact2(value: number): string {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
 }
 
-function RevenueNetIncomeChart({ data, labels }: {
+function RevenueNetIncomeChart({ data, labels, animate }: {
   data: { date: string; revenue: number; netIncome: number }[];
   labels?: string[];
+  animate?: boolean;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -80,19 +81,23 @@ function RevenueNetIncomeChart({ data, labels }: {
                     {yoyGrowth !== null && (
                       <span
                         className={`text-[11px] font-semibold mb-0.5 whitespace-nowrap ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}
-                        style={{ animation: 'fadeIn 0.4s ease-out both', animationDelay: `${i * 40 + 300}ms` }}
+                        style={animate ? { animation: 'fadeIn 0.4s ease-out both', animationDelay: `${i * 40 + 300}ms` } : undefined}
                       >
                         {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
                       </span>
                     )}
                     <div
                       className={`w-full rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
-                      style={{ height: barHeight(d.revenue), transformOrigin: 'bottom', animation: BAR_ANIMATION, animationDelay: `${i * 40}ms` }}
+                      style={animate
+                        ? { height: barHeight(d.revenue), transformOrigin: 'bottom', animation: BAR_ANIMATION, animationDelay: `${i * 40}ms` }
+                        : { height: barHeight(d.revenue) }}
                     />
                   </div>
                   <div
                     className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
-                    style={{ height: barHeight(d.netIncome), transformOrigin: 'bottom', animation: BAR_ANIMATION, animationDelay: `${i * 40 + 20}ms` }}
+                    style={animate
+                      ? { height: barHeight(d.netIncome), transformOrigin: 'bottom', animation: BAR_ANIMATION, animationDelay: `${i * 40 + 20}ms` }
+                      : { height: barHeight(d.netIncome) }}
                   />
                 </div>
                 {hovered === i && (
@@ -136,6 +141,7 @@ type ChartMode = 'annual' | 'quarterly';
 export default function StockFinancials({ symbol }: { symbol: string }) {
   const { data, isLoading, error } = useFinancials(symbol);
   const [chartMode, setChartMode] = useState<ChartMode>('annual');
+  const hasSwitched = useRef(false);
 
   if (isLoading) {
     return (
@@ -201,13 +207,13 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
               <button
                 className={`px-3 py-1 font-medium transition-colors ${chartMode === 'annual' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                onClick={() => setChartMode('annual')}
+                onClick={() => { hasSwitched.current = true; setChartMode('annual'); }}
               >
                 Annual
               </button>
               <button
                 className={`px-3 py-1 font-medium transition-colors ${chartMode === 'quarterly' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                onClick={() => setChartMode('quarterly')}
+                onClick={() => { hasSwitched.current = true; setChartMode('quarterly'); }}
               >
                 Quarterly
               </button>
@@ -215,9 +221,9 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
           </div>
           {hasChart ? (
             chartMode === 'annual' ? (
-              <RevenueNetIncomeChart key="annual" data={annualFinancials.slice(-10)} />
+              <RevenueNetIncomeChart key="annual" data={annualFinancials.slice(-10)} animate={hasSwitched.current} />
             ) : (
-              <RevenueNetIncomeChart key="quarterly" data={quarterlyChartData} labels={quarterlyLabels} />
+              <RevenueNetIncomeChart key="quarterly" data={quarterlyChartData} labels={quarterlyLabels} animate={hasSwitched.current} />
             )
           ) : (
             <p className="text-gray-400 text-sm text-center py-8">
