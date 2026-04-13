@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 
 const CHART_HEIGHT = 304;
 const Y_TICKS = 7;
+const BAR_ANIMATION = 'growUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both';
 
 function fmtCompact2(value: number): string {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
@@ -31,6 +32,10 @@ function RevenueNetIncomeChart({ data, labels }: {
 
   return (
     <div>
+      <style>{`
+        @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
       <div className="flex items-center gap-4 mb-3">
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <span className="w-3 h-3 rounded-sm bg-blue-500" />
@@ -73,18 +78,21 @@ function RevenueNetIncomeChart({ data, labels }: {
                 <div className="flex items-end gap-0.5 w-full justify-center">
                   <div className="flex-1 max-w-7 flex flex-col items-center">
                     {yoyGrowth !== null && (
-                      <span className={`text-[11px] font-semibold mb-0.5 whitespace-nowrap ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}>
+                      <span
+                        className={`text-[11px] font-semibold mb-0.5 whitespace-nowrap ${yoyGrowth >= 0 ? 'text-gain' : 'text-loss'}`}
+                        style={{ animation: 'fadeIn 0.4s ease-out both', animationDelay: `${i * 40 + 300}ms` }}
+                      >
                         {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth.toFixed(1)}%
                       </span>
                     )}
                     <div
                       className={`w-full rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-blue-500`}
-                      style={{ height: barHeight(d.revenue) }}
+                      style={{ height: barHeight(d.revenue), transformOrigin: 'bottom', animation: BAR_ANIMATION, animationDelay: `${i * 40}ms` }}
                     />
                   </div>
                   <div
                     className={`flex-1 max-w-7 rounded-t transition-opacity ${hovered !== null && hovered !== i ? 'opacity-40' : ''} bg-amber-400`}
-                    style={{ height: barHeight(d.netIncome) }}
+                    style={{ height: barHeight(d.netIncome), transformOrigin: 'bottom', animation: BAR_ANIMATION, animationDelay: `${i * 40 + 20}ms` }}
                   />
                 </div>
                 {hovered === i && (
@@ -207,9 +215,9 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
           </div>
           {hasChart ? (
             chartMode === 'annual' ? (
-              <RevenueNetIncomeChart data={annualFinancials.slice(-10)} />
+              <RevenueNetIncomeChart key="annual" data={annualFinancials.slice(-10)} />
             ) : (
-              <RevenueNetIncomeChart data={quarterlyChartData} labels={quarterlyLabels} />
+              <RevenueNetIncomeChart key="quarterly" data={quarterlyChartData} labels={quarterlyLabels} />
             )
           ) : (
             <p className="text-gray-400 text-sm text-center py-8">
@@ -226,12 +234,12 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-1.5 font-medium text-gray-400">Quarter</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">EPS Est.</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">EPS Act.</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">Revenue</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">Net Income</th>
-                  <th className="text-right py-1.5 font-medium text-gray-400">Surprise</th>
+                  <th className="text-left py-2.5 font-medium text-gray-400">Quarter</th>
+                  <th className="text-right py-2.5 font-medium text-gray-400">EPS Est.</th>
+                  <th className="text-right py-2.5 font-medium text-gray-400">EPS Act.</th>
+                  <th className="text-right py-2.5 font-medium text-gray-400">Revenue</th>
+                  <th className="text-right py-2.5 font-medium text-gray-400">Net Income</th>
+                  <th className="text-right py-2.5 font-medium text-gray-400">Surprise</th>
                 </tr>
               </thead>
               <tbody>
@@ -241,12 +249,12 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                     : null;
                   return (
                     <tr key={i} className="border-b border-gray-50">
-                      <td className="py-1.5 font-medium">{q.quarter}</td>
-                      <td className="py-1.5 text-right text-gray-500">{q.epsEstimate != null ? `$${q.epsEstimate.toFixed(2)}` : '—'}</td>
-                      <td className="py-1.5 text-right font-medium">{q.epsActual != null ? `$${q.epsActual.toFixed(2)}` : '—'}</td>
-                      <td className="py-1.5 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
-                      <td className="py-1.5 text-right text-gray-500">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
-                      <td className={`py-1.5 text-right font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
+                      <td className="py-2.5 font-medium">{q.quarter}</td>
+                      <td className="py-2.5 text-right text-gray-500">{q.epsEstimate != null ? `$${q.epsEstimate.toFixed(2)}` : '—'}</td>
+                      <td className="py-2.5 text-right font-medium">{q.epsActual != null ? `$${q.epsActual.toFixed(2)}` : '—'}</td>
+                      <td className="py-2.5 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
+                      <td className="py-2.5 text-right text-gray-500">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
+                      <td className={`py-2.5 text-right font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
                         {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
                       </td>
                     </tr>
