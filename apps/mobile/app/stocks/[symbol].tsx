@@ -1,11 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams } from 'expo-router';
 import { useStockQuote, useHistoricalPrices, useNews, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange, type NewsItem } from '@alpha-stocks/core';
 import { useState } from 'react';
-import { TouchableOpacity } from 'react-native';
 import StockLogo from '../../components/stocks/StockLogo';
+import StockFinancials from '../../components/stocks/StockFinancials';
 import Svg, { Polyline, Line, Text as SvgText } from 'react-native-svg';
+
+type DetailTab = 'overview' | 'financials' | 'news';
 
 const RANGES: HistoricalRange[] = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y'];
 const SCREEN_WIDTH = Dimensions.get('window').width - 32;
@@ -103,11 +105,19 @@ export default function StockDetailScreen() {
     );
   }
 
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const isPositive = quote.change >= 0;
   const isIndex = quote.symbol.startsWith('^') || quote.symbol.includes('=');
 
+  const TABS: { key: DetailTab; label: string }[] = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'financials', label: 'Financials' },
+    { key: 'news', label: 'News' },
+  ];
+
   return (
     <ScrollView style={styles.container}>
+      {/* Header — always visible */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <StockLogo symbol={quote.symbol} size={48} />
@@ -143,80 +153,103 @@ export default function StockDetailScreen() {
         );
       })()}
 
-      {/* Chart */}
-      <MiniChart symbol={upperSymbol} range={range} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rangeRow}>
-        {RANGES.map((r) => (
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        {TABS.map((t) => (
           <TouchableOpacity
-            key={r}
-            onPress={() => setRange(r)}
-            style={[styles.rangeBtn, range === r && styles.rangeBtnActive]}
+            key={t.key}
+            onPress={() => setActiveTab(t.key)}
+            style={[styles.tab, activeTab === t.key && styles.tabActive]}
           >
-            <Text style={[styles.rangeBtnText, range === r && styles.rangeBtnTextActive]}>{r}</Text>
+            <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
-
-      {/* Day/52w Ranges */}
-      {!isIndex && (
-        <View style={styles.rangesSection}>
-          {quote.low > 0 && quote.high > 0 && (
-            <RangeBarMobile low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
-          )}
-          {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
-            <RangeBarMobile low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
-          )}
-        </View>
-      )}
-
-      {/* Analyst target */}
-      {quote.targetMeanPrice != null && (
-        <View style={styles.analystRow}>
-          {quote.recommendationKey && (
-            <Text style={[styles.recBadge, {
-              color: quote.recommendationKey === 'buy' || quote.recommendationKey === 'strong_buy' ? '#16a34a' : quote.recommendationKey === 'hold' ? '#ca8a04' : '#dc2626',
-              backgroundColor: quote.recommendationKey === 'buy' || quote.recommendationKey === 'strong_buy' ? '#f0fdf4' : quote.recommendationKey === 'hold' ? '#fefce8' : '#fef2f2',
-            }]}>
-              {quote.recommendationKey === 'strong_buy' ? 'Strong Buy' : quote.recommendationKey.charAt(0).toUpperCase() + quote.recommendationKey.slice(1)}
-            </Text>
-          )}
-          <Text style={styles.targetText}>Target <Text style={styles.targetPrice}>{formatCurrency(quote.targetMeanPrice)}</Text></Text>
-          {quote.numberOfAnalystOpinions != null && (
-            <Text style={styles.analystCount}>{quote.numberOfAnalystOpinions} analysts</Text>
-          )}
-          {(() => {
-            const upside = quote.targetMeanPrice && quote.price > 0
-              ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
-              : null;
-            if (upside == null) return null;
-            return (
-              <Text style={[styles.upside, { color: upside >= 0 ? '#16a34a' : '#dc2626' }]}>
-                {upside >= 0 ? '+' : ''}{upside.toFixed(1)}% upside
-              </Text>
-            );
-          })()}
-        </View>
-      )}
-
-      {/* Stats */}
-      <View style={styles.grid}>
-        <StatItem label="Open" value={formatCurrency(quote.open)} />
-        <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
-        {quote.marketCap != null && <StatItem label="Market Cap" value={formatCompactNumber(quote.marketCap)} />}
-        <StatItem label="Volume" value={formatCompactNumber(quote.volume)} />
-        {quote.averageDailyVolume3Month != null && <StatItem label="Avg Volume" value={formatCompactNumber(quote.averageDailyVolume3Month)} />}
-        {quote.epsTrailingTwelveMonths != null && <StatItem label="EPS (TTM)" value={quote.epsTrailingTwelveMonths.toFixed(2)} />}
-        {quote.trailingPE != null && <StatItem label="P/E Ratio" value={quote.trailingPE.toFixed(2)} />}
-        {quote.forwardPE != null && <StatItem label="Forward P/E" value={quote.forwardPE.toFixed(2)} />}
-        {quote.priceToBook != null && <StatItem label="Price/Book" value={quote.priceToBook.toFixed(2)} />}
-        {quote.beta != null && <StatItem label="Beta" value={quote.beta.toFixed(2)} />}
-        {quote.dividendYield != null && quote.dividendYield > 0 && <StatItem label="Div Yield" value={`${(quote.dividendYield * 100).toFixed(2)}%`} />}
-        {quote.earningsTimestamp != null && <StatItem label="Next Earnings" value={new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />}
-        {quote.fullTimeEmployees != null && <StatItem label="Employees" value={quote.fullTimeEmployees.toLocaleString()} />}
       </View>
 
-      {/* News */}
-      <StockNews symbol={upperSymbol} />
+      {/* Tab content */}
+      {activeTab === 'overview' && (
+        <View>
+          {/* Chart */}
+          <MiniChart symbol={upperSymbol} range={range} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rangeRow}>
+            {RANGES.map((r) => (
+              <TouchableOpacity
+                key={r}
+                onPress={() => setRange(r)}
+                style={[styles.rangeBtn, range === r && styles.rangeBtnActive]}
+              >
+                <Text style={[styles.rangeBtnText, range === r && styles.rangeBtnTextActive]}>{r}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Day/52w Ranges */}
+          {!isIndex && (
+            <View style={styles.rangesSection}>
+              {quote.low > 0 && quote.high > 0 && (
+                <RangeBarMobile low={quote.low} high={quote.high} current={quote.price} label="Day's Range" />
+              )}
+              {quote.fiftyTwoWeekLow != null && quote.fiftyTwoWeekHigh != null && (
+                <RangeBarMobile low={quote.fiftyTwoWeekLow} high={quote.fiftyTwoWeekHigh} current={quote.price} label="52 Week Range" />
+              )}
+            </View>
+          )}
+
+          {/* Analyst target */}
+          {quote.targetMeanPrice != null && (
+            <View style={styles.analystRow}>
+              {quote.recommendationKey && (
+                <Text style={[styles.recBadge, {
+                  color: quote.recommendationKey === 'buy' || quote.recommendationKey === 'strong_buy' ? '#16a34a' : quote.recommendationKey === 'hold' ? '#ca8a04' : '#dc2626',
+                  backgroundColor: quote.recommendationKey === 'buy' || quote.recommendationKey === 'strong_buy' ? '#f0fdf4' : quote.recommendationKey === 'hold' ? '#fefce8' : '#fef2f2',
+                }]}>
+                  {quote.recommendationKey === 'strong_buy' ? 'Strong Buy' : quote.recommendationKey.charAt(0).toUpperCase() + quote.recommendationKey.slice(1)}
+                </Text>
+              )}
+              <Text style={styles.targetText}>Target <Text style={styles.targetPrice}>{formatCurrency(quote.targetMeanPrice)}</Text></Text>
+              {quote.numberOfAnalystOpinions != null && (
+                <Text style={styles.analystCount}>{quote.numberOfAnalystOpinions} analysts</Text>
+              )}
+              {(() => {
+                const upside = quote.targetMeanPrice && quote.price > 0
+                  ? ((quote.targetMeanPrice - quote.price) / quote.price) * 100
+                  : null;
+                if (upside == null) return null;
+                return (
+                  <Text style={[styles.upside, { color: upside >= 0 ? '#16a34a' : '#dc2626' }]}>
+                    {upside >= 0 ? '+' : ''}{upside.toFixed(1)}% upside
+                  </Text>
+                );
+              })()}
+            </View>
+          )}
+
+          {/* Stats */}
+          <View style={styles.grid}>
+            <StatItem label="Open" value={formatCurrency(quote.open)} />
+            <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
+            {quote.marketCap != null && <StatItem label="Market Cap" value={formatCompactNumber(quote.marketCap)} />}
+            <StatItem label="Volume" value={formatCompactNumber(quote.volume)} />
+            {quote.averageDailyVolume3Month != null && <StatItem label="Avg Volume" value={formatCompactNumber(quote.averageDailyVolume3Month)} />}
+            {quote.epsTrailingTwelveMonths != null && <StatItem label="EPS (TTM)" value={quote.epsTrailingTwelveMonths.toFixed(2)} />}
+            {quote.trailingPE != null && <StatItem label="P/E Ratio" value={quote.trailingPE.toFixed(2)} />}
+            {quote.forwardPE != null && <StatItem label="Forward P/E" value={quote.forwardPE.toFixed(2)} />}
+            {quote.priceToBook != null && <StatItem label="Price/Book" value={quote.priceToBook.toFixed(2)} />}
+            {quote.beta != null && <StatItem label="Beta" value={quote.beta.toFixed(2)} />}
+            {quote.dividendYield != null && quote.dividendYield > 0 && <StatItem label="Div Yield" value={`${(quote.dividendYield * 100).toFixed(2)}%`} />}
+            {quote.earningsTimestamp != null && <StatItem label="Next Earnings" value={new Date(quote.earningsTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />}
+            {quote.fullTimeEmployees != null && <StatItem label="Employees" value={quote.fullTimeEmployees.toLocaleString()} />}
+          </View>
+        </View>
+      )}
+
+      {activeTab === 'financials' && (
+        <StockFinancials symbol={upperSymbol} />
+      )}
+
+      {activeTab === 'news' && (
+        <StockNews symbol={upperSymbol} />
+      )}
 
       <View style={{ height: 32 }} />
     </ScrollView>
@@ -301,6 +334,11 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, marginBottom: 4 },
   price: { fontSize: 32, fontWeight: '600' },
   change: { fontSize: 16, fontWeight: '500' },
+  tabBar: { flexDirection: 'row', gap: 0, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  tab: { paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: '#2563eb' },
+  tabText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
+  tabTextActive: { color: '#111827' },
   extRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 16 },
   extLabel: { fontSize: 12, color: '#9ca3af' },
   extPrice: { fontSize: 14, fontWeight: '500' },
