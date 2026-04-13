@@ -125,8 +125,8 @@ function BarChart({
               style={{
                 position: 'absolute',
                 top: revTop - 18,
-                left: cx - barWidth - gap / 2,
-                width: barWidth * 2 + gap,
+                left: cx - barWidth * 1.5 - gap,
+                width: barWidth * 2,
                 textAlign: 'center',
                 fontSize: 10,
                 fontWeight: '700',
