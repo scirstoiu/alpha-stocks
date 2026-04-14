@@ -96,6 +96,31 @@ export function useAddTransaction() {
   });
 }
 
+export function useUpdateTransaction() {
+  const supabase = useSupabase();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      portfolioId,
+      ...params
+    }: {
+      id: string;
+      portfolioId: string;
+      symbol: string;
+      type: TransactionType;
+      shares: number;
+      price_per_share: number;
+      fees?: number;
+      date: string;
+      notes?: string;
+    }) => queries.updateTransaction(supabase, id, params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', variables.portfolioId] });
+    },
+  });
+}
+
 export function useDeleteTransaction() {
   const supabase = useSupabase();
   const queryClient = useQueryClient();

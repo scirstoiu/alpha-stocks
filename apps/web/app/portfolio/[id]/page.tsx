@@ -8,6 +8,7 @@ import {
   usePortfolios,
   useTransactions,
   useAddTransaction,
+  useUpdateTransaction,
   useDeleteTransaction,
   useRenamePortfolio,
   useDeletePortfolio,
@@ -61,10 +62,12 @@ export default function PortfolioDetailPage({
   const { data: transactions, isLoading: loadingTx } = useTransactions(id);
   useTitle(portfolio?.name ?? 'Portfolio');
   const addTransaction = useAddTransaction();
+  const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
   const renamePortfolio = useRenamePortfolio();
   const deletePortfolio = useDeletePortfolio();
   const [showAddTx, setShowAddTx] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [showImportCsv, setShowImportCsv] = useState(false);
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -335,7 +338,13 @@ export default function PortfolioDetailPage({
                     <td className="px-4 py-1 text-right">{tx.shares}</td>
                     <td className="px-4 py-1 text-right">{formatCurrency(tx.price_per_share)}</td>
                     <td className="px-4 py-1 text-right">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
-                    <td className="px-4 py-1 text-right">
+                    <td className="px-4 py-1 text-right space-x-2">
+                      <button
+                        onClick={() => setEditingTx(tx)}
+                        className="text-blue-400 hover:text-blue-600 text-xs"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => deleteTransaction.mutate({ id: tx.id, portfolioId: id })}
                         className="text-red-400 hover:text-red-600 text-xs"
@@ -357,11 +366,21 @@ export default function PortfolioDetailPage({
         <PortfolioStatsTab transactions={transactions} symbols={symbols} />
       )}
 
-      <AddTransactionModal
+      <TransactionModal
         open={showAddTx}
         onClose={() => setShowAddTx(false)}
         portfolioId={id}
+        mode="add"
         onAdd={addTransaction}
+      />
+
+      <TransactionModal
+        open={editingTx !== null}
+        onClose={() => setEditingTx(null)}
+        portfolioId={id}
+        mode="edit"
+        transaction={editingTx ?? undefined}
+        onUpdate={updateTransaction}
       />
 
       <ImportTransactionsModal
@@ -649,18 +668,24 @@ function PortfolioStatsTab({ transactions, symbols }: { transactions: Transactio
   );
 }
 
-function AddTransactionModal({
+function TransactionModal({
   open,
   onClose,
   portfolioId,
+  mode,
+  transaction,
   onAdd,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   portfolioId: string;
-  onAdd: ReturnType<typeof useAddTransaction>;
+  mode: 'add' | 'edit';
+  transaction?: Transaction;
+  onAdd?: ReturnType<typeof useAddTransaction>;
+  onUpdate?: ReturnType<typeof useUpdateTransaction>;
 }) {
-  const [form, setForm] = useState({
+  const defaultForm = {
     symbol: '',
     type: 'buy' as TransactionType,
     shares: '',
@@ -668,12 +693,30 @@ function AddTransactionModal({
     fees: '',
     date: new Date().toISOString().split('T')[0],
     notes: '',
-  });
+  };
+
+  const [form, setForm] = useState(defaultForm);
+
+  useEffect(() => {
+    if (mode === 'edit' && transaction) {
+      setForm({
+        symbol: transaction.symbol,
+        type: transaction.type,
+        shares: String(transaction.shares),
+        price: String(transaction.price_per_share),
+        fees: transaction.fees ? String(transaction.fees) : '',
+        date: transaction.date.split('T')[0],
+        notes: transaction.notes || '',
+      });
+    } else if (mode === 'add') {
+      setForm(defaultForm);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, transaction?.id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onAdd.mutateAsync({
-      portfolio_id: portfolioId,
+    const params = {
       symbol: form.symbol,
       type: form.type,
       shares: parseFloat(form.shares),
@@ -681,13 +724,20 @@ function AddTransactionModal({
       fees: form.fees ? parseFloat(form.fees) : 0,
       date: form.date,
       notes: form.notes || undefined,
-    });
-    setForm({ symbol: '', type: 'buy', shares: '', price: '', fees: '', date: new Date().toISOString().split('T')[0], notes: '' });
+    };
+    if (mode === 'edit' && transaction && onUpdate) {
+      await onUpdate.mutateAsync({ id: transaction.id, portfolioId, ...params });
+    } else if (onAdd) {
+      await onAdd.mutateAsync({ portfolio_id: portfolioId, ...params });
+    }
+    setForm(defaultForm);
     onClose();
   }
 
+  const isPending = mode === 'edit' ? onUpdate?.isPending : onAdd?.isPending;
+
   return (
-    <Modal open={open} onClose={onClose} title="Add Transaction">
+    <Modal open={open} onClose={onClose} title={mode === 'edit' ? 'Edit Transaction' : 'Add Transaction'}>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex gap-2">
           {(['buy', 'sell', 'dividend'] as const).map((t) => (
@@ -767,10 +817,10 @@ function AddTransactionModal({
           </button>
           <button
             type="submit"
-            disabled={onAdd.isPending}
+            disabled={isPending}
             className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark disabled:opacity-50"
           >
-            Add
+            {mode === 'edit' ? 'Save' : 'Add'}
           </button>
         </div>
       </form>

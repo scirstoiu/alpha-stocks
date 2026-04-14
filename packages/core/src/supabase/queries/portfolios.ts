@@ -101,6 +101,38 @@ export async function addTransaction(
   return data;
 }
 
+export async function updateTransaction(
+  supabase: SupabaseClient,
+  id: string,
+  params: {
+    symbol: string;
+    type: TransactionType;
+    shares: number;
+    price_per_share: number;
+    fees?: number;
+    date: string;
+    notes?: string;
+  },
+): Promise<Transaction> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update({
+      symbol: params.symbol.toUpperCase(),
+      type: params.type,
+      shares: params.shares,
+      price_per_share: params.price_per_share,
+      fees: params.fees ?? 0,
+      date: params.date,
+      notes: params.notes || null,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteTransaction(
   supabase: SupabaseClient,
   id: string,
