@@ -31,8 +31,23 @@ import { useTitle } from '@/hooks/useTitle';
 
 type Tab = 'positions' | 'transactions' | 'stats';
 
-// Persist sort state per portfolio (survives component remount)
-const persistedSort = new Map<string, { column: string | null; direction: 'asc' | 'desc' }>();
+function getSavedSort(id: string): { column: string | null; direction: 'asc' | 'desc' } {
+  if (typeof window === 'undefined') return { column: null, direction: 'desc' };
+  try {
+    const raw = localStorage.getItem(`portfolio-sort-${id}`);
+    return raw ? JSON.parse(raw) : { column: null, direction: 'desc' };
+  } catch {
+    return { column: null, direction: 'desc' };
+  }
+}
+
+function saveSort(id: string, column: string | null, direction: 'asc' | 'desc') {
+  try {
+    localStorage.setItem(`portfolio-sort-${id}`, JSON.stringify({ column, direction }));
+  } catch {
+    // non-critical
+  }
+}
 
 export default function PortfolioDetailPage({
   params,
@@ -54,17 +69,16 @@ export default function PortfolioDetailPage({
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('positions');
-  const saved = persistedSort.get(id);
-  const [sortColumn, setSortColumnState] = useState<string | null>(saved?.column ?? null);
-  const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(saved?.direction ?? 'desc');
+  const [sortColumn, setSortColumnState] = useState<string | null>(() => getSavedSort(id).column);
+  const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(() => getSavedSort(id).direction);
   const setSortColumn = (col: string | null) => {
-    persistedSort.set(id, { column: col, direction: persistedSort.get(id)?.direction ?? 'desc' });
     setSortColumnState(col);
+    saveSort(id, col, sortDirection);
   };
   const setSortDirection = (dir: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => {
     setSortDirectionState((prev) => {
       const next = typeof dir === 'function' ? dir(prev) : dir;
-      persistedSort.set(id, { column: persistedSort.get(id)?.column ?? null, direction: next });
+      saveSort(id, sortColumn, next);
       return next;
     });
   };
