@@ -311,8 +311,8 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
               </View>
               {/* Data rows */}
               {earningsDisplay.map((q, i) => {
-                const surprise = q.epsActual != null && q.epsEstimate != null
-                  ? q.epsActual - q.epsEstimate
+                const surprise = q.epsActual != null && q.epsEstimate != null && q.epsEstimate !== 0
+                  ? ((q.epsActual - q.epsEstimate) / Math.abs(q.epsEstimate)) * 100
                   : null;
                 return (
                   <View key={i} style={[tableStyles.row, i % 2 === 0 && tableStyles.rowAlt]}>
@@ -333,7 +333,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                       width: 72,
                       color: surprise != null ? (surprise >= 0 ? '#16a34a' : '#dc2626') : '#6b7280',
                     }]}>
-                      {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
+                      {surprise != null ? `${surprise >= 0 ? '+' : ''}${surprise.toFixed(1)}%` : '—'}
                     </Text>
                   </View>
                 );

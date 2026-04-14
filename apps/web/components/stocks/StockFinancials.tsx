@@ -250,8 +250,8 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
               </thead>
               <tbody>
                 {earningsDisplay.map((q, i) => {
-                  const surprise = q.epsActual != null && q.epsEstimate != null
-                    ? q.epsActual - q.epsEstimate
+                  const surprise = q.epsActual != null && q.epsEstimate != null && q.epsEstimate !== 0
+                    ? ((q.epsActual - q.epsEstimate) / Math.abs(q.epsEstimate)) * 100
                     : null;
                   return (
                     <tr key={i} className="border-b border-gray-50">
@@ -261,7 +261,7 @@ export default function StockFinancials({ symbol }: { symbol: string }) {
                       <td className="py-2.5 text-right text-gray-500">{q.revenue != null ? formatCompactNumber(q.revenue) : '—'}</td>
                       <td className="py-2.5 text-right text-gray-500">{q.earnings != null ? formatCompactNumber(q.earnings) : '—'}</td>
                       <td className={`py-2.5 text-right font-medium ${surprise != null ? (surprise >= 0 ? 'text-gain' : 'text-loss') : ''}`}>
-                        {surprise != null ? `${surprise >= 0 ? '+' : ''}$${surprise.toFixed(2)}` : '—'}
+                        {surprise != null ? `${surprise >= 0 ? '+' : ''}${surprise.toFixed(1)}%` : '—'}
                       </td>
                     </tr>
                   );
