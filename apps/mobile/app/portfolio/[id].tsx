@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,11 +7,16 @@ import {
   usePortfolio,
   usePortfolios,
   useTransactions,
+  useAddTransaction,
+  useUpdateTransaction,
+  useDeleteTransaction,
   useStockQuotes,
   computePortfolioSummary,
   formatCurrency,
   formatPercent,
   formatDate,
+  type Transaction,
+  type TransactionType,
 } from '@alpha-stocks/core';
 import StockLogo from '../../components/stocks/StockLogo';
 
@@ -51,8 +56,13 @@ export default function PortfolioDetailScreen() {
 
   const gesture = Gesture.Race(flingLeft, flingRight);
   const queryClient = useQueryClient();
+  const addTransaction = useAddTransaction();
+  const updateTransaction = useUpdateTransaction();
+  const deleteTx = useDeleteTransaction();
   const [refreshing, setRefreshing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [txModalMode, setTxModalMode] = useState<'add' | 'edit' | null>(null);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['quotes'] });
@@ -176,7 +186,12 @@ export default function PortfolioDetailScreen() {
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transactions</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Transactions</Text>
+          <TouchableOpacity onPress={() => { setEditingTx(null); setTxModalMode('add'); }} style={styles.addTxBtn}>
+            <Text style={styles.addTxBtnText}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
         {transactions && transactions.length > 0 ? (
           [...transactions].reverse().map((tx) => (
             <View key={tx.id} style={styles.txRow}>
@@ -190,8 +205,21 @@ export default function PortfolioDetailScreen() {
                   <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
                 </View>
               </View>
-              <View style={styles.posRight}>
+              <View style={styles.txRight}>
                 <Text style={styles.txAmount}>{tx.shares} @ {formatCurrency(tx.price_per_share)}</Text>
+                <View style={styles.txActions}>
+                  <TouchableOpacity onPress={() => { setEditingTx(tx); setTxModalMode('edit'); }}>
+                    <Text style={styles.txEdit}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {
+                    Alert.alert('Delete Transaction', `Delete this ${tx.type} for ${tx.shares} ${tx.symbol}?`, [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: () => deleteTx.mutate({ id: tx.id, portfolioId: id || '' }) },
+                    ]);
+                  }}>
+                    <Text style={styles.txDelete}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))
@@ -200,11 +228,153 @@ export default function PortfolioDetailScreen() {
         )}
       </View>
 
+      <TransactionFormModal
+        visible={txModalMode !== null}
+        mode={txModalMode || 'add'}
+        transaction={editingTx}
+        portfolioId={id || ''}
+        onClose={() => { setTxModalMode(null); setEditingTx(null); }}
+        onAdd={addTransaction}
+        onUpdate={updateTransaction}
+      />
+
       <View style={{ height: 32 }} />
     </ScrollView>
     </GestureDetector>
   );
 }
+
+function TransactionFormModal({
+  visible,
+  mode,
+  transaction,
+  portfolioId,
+  onClose,
+  onAdd,
+  onUpdate,
+}: {
+  visible: boolean;
+  mode: 'add' | 'edit';
+  transaction: Transaction | null;
+  portfolioId: string;
+  onClose: () => void;
+  onAdd: ReturnType<typeof useAddTransaction>;
+  onUpdate: ReturnType<typeof useUpdateTransaction>;
+}) {
+  const [symbol, setSymbol] = useState('');
+  const [type, setType] = useState<TransactionType>('buy');
+  const [shares, setShares] = useState('');
+  const [price, setPrice] = useState('');
+  const [fees, setFees] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
+
+  // Reset form when modal opens
+  const prevVisible = useRef(false);
+  if (visible && !prevVisible.current) {
+    if (mode === 'edit' && transaction) {
+      setSymbol(transaction.symbol);
+      setType(transaction.type);
+      setShares(String(transaction.shares));
+      setPrice(String(transaction.price_per_share));
+      setFees(transaction.fees ? String(transaction.fees) : '');
+      setDate(transaction.date.split('T')[0]);
+      setNotes(transaction.notes || '');
+    } else {
+      setSymbol('');
+      setType('buy');
+      setShares('');
+      setPrice('');
+      setFees('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setNotes('');
+    }
+  }
+  prevVisible.current = visible;
+
+  async function handleSubmit() {
+    const params = {
+      symbol,
+      type,
+      shares: parseFloat(shares),
+      price_per_share: parseFloat(price),
+      fees: fees ? parseFloat(fees) : 0,
+      date,
+      notes: notes || undefined,
+    };
+    if (mode === 'edit' && transaction) {
+      await onUpdate.mutateAsync({ id: transaction.id, portfolioId, ...params });
+    } else {
+      await onAdd.mutateAsync({ portfolio_id: portfolioId, ...params });
+    }
+    onClose();
+  }
+
+  const canSubmit = symbol.trim() && shares && price && date;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={formStyles.overlay} activeOpacity={1} onPress={onClose}>
+        <View style={formStyles.sheet} onStartShouldSetResponder={() => true}>
+          <Text style={formStyles.title}>{mode === 'edit' ? 'Edit Transaction' : 'Add Transaction'}</Text>
+
+          <View style={formStyles.typeRow}>
+            {(['buy', 'sell', 'dividend'] as const).map((t) => (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setType(t)}
+                style={[formStyles.typeBtn, type === t && (t === 'buy' ? formStyles.typeBuy : t === 'sell' ? formStyles.typeSell : formStyles.typeDiv)]}
+              >
+                <Text style={[formStyles.typeBtnText, type === t && formStyles.typeBtnTextActive]}>{t.toUpperCase()}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TextInput style={formStyles.input} placeholder="Symbol (e.g. AAPL)" value={symbol} onChangeText={(v) => setSymbol(v.toUpperCase())} autoCapitalize="characters" />
+          <View style={formStyles.row}>
+            <TextInput style={[formStyles.input, formStyles.flex1]} placeholder="Shares" value={shares} onChangeText={setShares} keyboardType="decimal-pad" />
+            <TextInput style={[formStyles.input, formStyles.flex1]} placeholder="Price" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
+          </View>
+          <View style={formStyles.row}>
+            <TextInput style={[formStyles.input, formStyles.flex1]} placeholder="Date (YYYY-MM-DD)" value={date} onChangeText={setDate} />
+            <TextInput style={[formStyles.input, formStyles.flex1]} placeholder="Fees" value={fees} onChangeText={setFees} keyboardType="decimal-pad" />
+          </View>
+          <TextInput style={formStyles.input} placeholder="Notes (optional)" value={notes} onChangeText={setNotes} />
+
+          <View style={formStyles.actions}>
+            <TouchableOpacity onPress={onClose} style={formStyles.cancelBtn}>
+              <Text style={formStyles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSubmit} style={[formStyles.submitBtn, !canSubmit && { opacity: 0.5 }]} disabled={!canSubmit}>
+              <Text style={formStyles.submitText}>{mode === 'edit' ? 'Save' : 'Add'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const formStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, paddingBottom: 36 },
+  title: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
+  typeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  typeBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center' },
+  typeBuy: { backgroundColor: '#f0fdf4', borderColor: '#86efac' },
+  typeSell: { backgroundColor: '#fef2f2', borderColor: '#fca5a5' },
+  typeDiv: { backgroundColor: '#eff6ff', borderColor: '#93c5fd' },
+  typeBtnText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  typeBtnTextActive: { color: '#111827' },
+  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginBottom: 10 },
+  row: { flexDirection: 'row', gap: 8 },
+  flex1: { flex: 1 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
+  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
+  cancelText: { fontSize: 15, color: '#6b7280' },
+  submitBtn: { backgroundColor: '#2563eb', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  submitText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
@@ -248,6 +418,13 @@ const styles = StyleSheet.create({
   })) as unknown as any,
   txSymbol: { fontWeight: '600', fontSize: 14 },
   txDate: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  txRight: { alignItems: 'flex-end' },
   txAmount: { fontSize: 13, color: '#374151' },
+  txActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  txEdit: { fontSize: 13, fontWeight: '600', color: '#2563eb' },
+  txDelete: { fontSize: 13, fontWeight: '600', color: '#dc2626' },
+  sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  addTxBtn: { backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6 },
+  addTxBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   hint: { color: '#6b7280', textAlign: 'center', marginTop: 16 },
 });
