@@ -71,6 +71,12 @@ export default function PortfolioDetailPage({
   const [activeTab, setActiveTab] = useState<Tab>('positions');
   const [sortColumn, setSortColumnState] = useState<string | null>(() => getSavedSort(id).column);
   const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(() => getSavedSort(id).direction);
+  // Restore sort when switching between portfolios (id changes but component may reuse)
+  useEffect(() => {
+    const saved = getSavedSort(id);
+    setSortColumnState(saved.column);
+    setSortDirectionState(saved.direction);
+  }, [id]);
   const setSortColumn = (col: string | null) => {
     setSortColumnState(col);
     saveSort(id, col, sortDirection);
