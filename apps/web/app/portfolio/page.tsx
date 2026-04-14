@@ -782,11 +782,23 @@ function TransactionReport({
   portfolios: Portfolio[];
 }) {
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
-  const [portfolioFilter, setPortfolioFilter] = useState<string>('all');
+  const [selectedPortfolios, setSelectedPortfolios] = useState<Set<string>>(new Set());
+  const [pfDropdownOpen, setPfDropdownOpen] = useState(false);
+  const pfDropdownRef = useRef<HTMLDivElement>(null);
   const [symbolFilter, setSymbolFilter] = useState('');
   const [period, setPeriod] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (pfDropdownRef.current && !pfDropdownRef.current.contains(e.target as Node)) {
+        setPfDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const filtered = useMemo(() => {
     let result = transactions;
@@ -795,8 +807,8 @@ function TransactionReport({
       result = result.filter((tx) => tx.type === typeFilter);
     }
 
-    if (portfolioFilter !== 'all') {
-      result = result.filter((tx) => tx.portfolio_id === portfolioFilter);
+    if (selectedPortfolios.size > 0) {
+      result = result.filter((tx) => selectedPortfolios.has(tx.portfolio_id));
     }
 
     if (symbolFilter.trim()) {
@@ -825,7 +837,7 @@ function TransactionReport({
     }
 
     return result;
-  }, [transactions, typeFilter, portfolioFilter, symbolFilter, period, dateFrom, dateTo]);
+  }, [transactions, typeFilter, selectedPortfolios, symbolFilter, period, dateFrom, dateTo]);
 
   const totalAmount = useMemo(() => {
     return filtered.reduce((sum, tx) => sum + tx.shares * tx.price_per_share, 0);
@@ -887,18 +899,52 @@ function TransactionReport({
                 className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-24"
               />
             </div>
-            <div>
+            <div className="relative" ref={pfDropdownRef}>
               <label className="block text-xs font-medium text-gray-400 mb-1">Portfolio</label>
-              <select
-                value={portfolioFilter}
-                onChange={(e) => setPortfolioFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+              <button
+                type="button"
+                onClick={() => setPfDropdownOpen((v) => !v)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-left min-w-[140px] flex items-center justify-between gap-2"
               >
-                <option value="all">All Portfolios</option>
-                {portfolios.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                <span className="truncate">
+                  {selectedPortfolios.size === 0
+                    ? 'All Portfolios'
+                    : selectedPortfolios.size === 1
+                      ? portfolios.find((p) => selectedPortfolios.has(p.id))?.name || '1 selected'
+                      : `${selectedPortfolios.size} selected`}
+                </span>
+                <span className="text-gray-400 text-xs">▼</span>
+              </button>
+              {pfDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
+                  {portfolios.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedPortfolios.has(p.id)}
+                        onChange={() => {
+                          setSelectedPortfolios((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                            return next;
+                          });
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      {p.name}
+                    </label>
+                  ))}
+                  {selectedPortfolios.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPortfolios(new Set())}
+                      className="w-full text-left px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-50 border-t border-gray-100 mt-1"
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-5 text-sm text-gray-500 items-baseline">
