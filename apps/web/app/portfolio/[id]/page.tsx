@@ -308,6 +308,7 @@ export default function PortfolioDetailPage({
                   <th className="text-left px-4 py-1 font-medium text-gray-400 text-xs">Symbol</th>
                   <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Shares</th>
                   <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Price</th>
+                  <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Fees</th>
                   <th className="text-right px-4 py-1 font-medium text-gray-400 text-xs">Total</th>
                   <th className="px-4 py-1"></th>
                 </tr>
@@ -337,6 +338,7 @@ export default function PortfolioDetailPage({
                     </td>
                     <td className="px-4 py-1 text-right">{tx.shares}</td>
                     <td className="px-4 py-1 text-right">{formatCurrency(tx.price_per_share)}</td>
+                    <td className="px-4 py-1 text-right text-gray-400">{tx.fees > 0 ? formatCurrency(tx.fees) : '—'}</td>
                     <td className="px-4 py-1 text-right">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
                     <td className="px-4 py-1 text-right space-x-3">
                       <button
