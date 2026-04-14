@@ -842,41 +842,6 @@ function TransactionReport({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap gap-3 items-end">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Type</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as TransactionType | 'all')}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
-              >
-                {TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Portfolio</label>
-              <select
-                value={portfolioFilter}
-                onChange={(e) => setPortfolioFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
-              >
-                <option value="all">All Portfolios</option>
-                {portfolios.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Symbol</label>
-              <input
-                type="text"
-                value={symbolFilter}
-                onChange={(e) => setSymbolFilter(e.target.value.toUpperCase())}
-                placeholder="e.g. AAPL"
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-24"
-              />
-            </div>
-            <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Period</label>
               <select
                 value={period}
@@ -900,6 +865,41 @@ function TransactionReport({
                 </div>
               </>
             )}
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Type</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as TransactionType | 'all')}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+              >
+                {TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Symbol</label>
+              <input
+                type="text"
+                value={symbolFilter}
+                onChange={(e) => setSymbolFilter(e.target.value.toUpperCase())}
+                placeholder="e.g. AAPL"
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-24"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Portfolio</label>
+              <select
+                value={portfolioFilter}
+                onChange={(e) => setPortfolioFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+              >
+                <option value="all">All Portfolios</option>
+                {portfolios.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex gap-5 text-sm text-gray-500 items-baseline">
             <span><strong className="text-gray-800">{filtered.length}</strong> transactions</span>
