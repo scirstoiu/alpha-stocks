@@ -338,16 +338,20 @@ export default function PortfolioDetailPage({
                     <td className="px-4 py-1 text-right">{tx.shares}</td>
                     <td className="px-4 py-1 text-right">{formatCurrency(tx.price_per_share)}</td>
                     <td className="px-4 py-1 text-right">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
-                    <td className="px-4 py-1 text-right space-x-2">
+                    <td className="px-4 py-1 text-right space-x-3">
                       <button
                         onClick={() => setEditingTx(tx)}
-                        className="text-blue-400 hover:text-blue-600 text-xs"
+                        className="text-blue-500 hover:text-blue-700 text-sm font-medium"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => deleteTransaction.mutate({ id: tx.id, portfolioId: id })}
-                        className="text-red-400 hover:text-red-600 text-xs"
+                        onClick={() => {
+                          if (window.confirm(`Delete this ${tx.type} transaction for ${tx.shares} ${tx.symbol}?`)) {
+                            deleteTransaction.mutate({ id: tx.id, portfolioId: id });
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm font-medium"
                       >
                         Delete
                       </button>
