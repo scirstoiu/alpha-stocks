@@ -13,7 +13,9 @@ import {
   computePositions,
   formatCurrency,
   formatPercent,
+  formatDate,
   type Portfolio,
+  type TransactionType,
   type PortfolioSummary,
   type Transaction,
   type Position,
@@ -36,11 +38,13 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
+import StockLogo from '@/components/stocks/StockLogo';
 import { useTitle } from '@/hooks/useTitle';
 
-type PageTab = 'overview' | 'stats';
+type PageTab = 'overview' | 'stats' | 'reports';
 
 export default function PortfoliosPage() {
   useTitle('Portfolios');
@@ -136,9 +140,23 @@ export default function PortfoliosPage() {
     setShowCreate(false);
   }
 
+  // Build flat list of all transactions with portfolio name for Reports tab
+  const allTransactions = useMemo(() => {
+    const result: (Transaction & { portfolioName: string })[] = [];
+    for (let i = 0; i < portfolioIds.length; i++) {
+      const txs = txResults[i]?.data;
+      const pName = (portfolios || []).find((p) => p.id === portfolioIds[i])?.name || '—';
+      if (txs) {
+        for (const tx of txs) result.push({ ...tx, portfolioName: pName });
+      }
+    }
+    return result.sort((a, b) => b.date.localeCompare(a.date));
+  }, [txResults, portfolioIds, portfolios]);
+
   const tabs: { key: PageTab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'stats', label: 'Stats' },
+    { key: 'reports', label: 'Reports' },
   ];
 
   return (
@@ -206,6 +224,10 @@ export default function PortfoliosPage() {
       )}
 
       {activeTab === 'stats' && <PortfolioStats summaries={summaries} portfolios={portfolios || []} />}
+
+      {activeTab === 'reports' && (
+        <TransactionReport transactions={allTransactions} portfolios={portfolios || []} />
+      )}
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Portfolio">
         <form onSubmit={handleCreate}>
@@ -729,6 +751,211 @@ function SortablePortfolioCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// --- Reports Tab ---
+
+const TYPE_OPTIONS: { value: TransactionType | 'all'; label: string }[] = [
+  { value: 'all', label: 'All Types' },
+  { value: 'sell', label: 'Sell' },
+  { value: 'buy', label: 'Buy' },
+  { value: 'dividend', label: 'Dividend' },
+];
+
+const PERIOD_OPTIONS = [
+  { value: 'all', label: 'All Time' },
+  { value: 'ytd', label: 'YTD' },
+  { value: '1y', label: 'Last 12 Months' },
+  { value: '6m', label: 'Last 6 Months' },
+  { value: '3m', label: 'Last 3 Months' },
+  { value: '1m', label: 'Last Month' },
+  { value: 'custom', label: 'Custom Range' },
+];
+
+function TransactionReport({
+  transactions,
+  portfolios,
+}: {
+  transactions: (Transaction & { portfolioName: string })[];
+  portfolios: Portfolio[];
+}) {
+  const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
+  const [portfolioFilter, setPortfolioFilter] = useState<string>('all');
+  const [symbolFilter, setSymbolFilter] = useState('');
+  const [period, setPeriod] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const filtered = useMemo(() => {
+    let result = transactions;
+
+    if (typeFilter !== 'all') {
+      result = result.filter((tx) => tx.type === typeFilter);
+    }
+
+    if (portfolioFilter !== 'all') {
+      result = result.filter((tx) => tx.portfolio_id === portfolioFilter);
+    }
+
+    if (symbolFilter.trim()) {
+      const sym = symbolFilter.trim().toUpperCase();
+      result = result.filter((tx) => tx.symbol.includes(sym));
+    }
+
+    // Period filter
+    const now = new Date();
+    let fromDate: Date | null = null;
+    if (period === 'ytd') fromDate = new Date(now.getFullYear(), 0, 1);
+    else if (period === '1y') { fromDate = new Date(now); fromDate.setFullYear(fromDate.getFullYear() - 1); }
+    else if (period === '6m') { fromDate = new Date(now); fromDate.setMonth(fromDate.getMonth() - 6); }
+    else if (period === '3m') { fromDate = new Date(now); fromDate.setMonth(fromDate.getMonth() - 3); }
+    else if (period === '1m') { fromDate = new Date(now); fromDate.setMonth(fromDate.getMonth() - 1); }
+    else if (period === 'custom') {
+      if (dateFrom) fromDate = new Date(dateFrom);
+    }
+
+    if (fromDate) {
+      const fromStr = fromDate.toISOString().split('T')[0];
+      result = result.filter((tx) => tx.date >= fromStr);
+    }
+    if (period === 'custom' && dateTo) {
+      result = result.filter((tx) => tx.date <= dateTo);
+    }
+
+    return result;
+  }, [transactions, typeFilter, portfolioFilter, symbolFilter, period, dateFrom, dateTo]);
+
+  const totalAmount = useMemo(() => {
+    return filtered.reduce((sum, tx) => sum + tx.shares * tx.price_per_share, 0);
+  }, [filtered]);
+
+  const totalFees = useMemo(() => {
+    return filtered.reduce((sum, tx) => sum + tx.fees, 0);
+  }, [filtered]);
+
+  return (
+    <div>
+      {/* Filters */}
+      <Card className="mb-4">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Type</label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as TransactionType | 'all')}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            >
+              {TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Portfolio</label>
+            <select
+              value={portfolioFilter}
+              onChange={(e) => setPortfolioFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            >
+              <option value="all">All Portfolios</option>
+              {portfolios.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Symbol</label>
+            <input
+              type="text"
+              value={symbolFilter}
+              onChange={(e) => setSymbolFilter(e.target.value.toUpperCase())}
+              placeholder="e.g. AAPL"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-24"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Period</label>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            >
+              {PERIOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          {period === 'custom' && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">From</label>
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">To</label>
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+
+      {/* Summary bar */}
+      <div className="flex gap-6 mb-3 text-sm text-gray-500">
+        <span><strong className="text-gray-800">{filtered.length}</strong> transactions</span>
+        <span>Total: <strong className="text-gray-800">{formatCurrency(totalAmount)}</strong></span>
+        {totalFees > 0 && <span>Fees: <strong className="text-gray-800">{formatCurrency(totalFees)}</strong></span>}
+      </div>
+
+      {/* Table */}
+      {filtered.length > 0 ? (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Date</th>
+              <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Type</th>
+              <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Symbol</th>
+              <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Portfolio</th>
+              <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Shares</th>
+              <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Price</th>
+              <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Fees</th>
+              <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Total</th>
+              {filtered[0]?.notes && <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Notes</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((tx) => (
+              <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="px-3 py-1.5">{formatDate(tx.date)}</td>
+                <td className="px-3 py-1.5">
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                    tx.type === 'buy' ? 'bg-green-100 text-green-800'
+                      : tx.type === 'sell' ? 'bg-red-100 text-red-800'
+                        : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {tx.type.toUpperCase()}
+                  </span>
+                </td>
+                <td className="px-3 py-1.5">
+                  <Link href={`/stocks/${tx.symbol}`} target="_blank" className="inline-flex items-center gap-2 group">
+                    <StockLogo symbol={tx.symbol} size={22} />
+                    <span className="font-bold text-xs bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-700 px-1.5 py-0.5 rounded transition-colors tracking-wide">{tx.symbol}</span>
+                  </Link>
+                </td>
+                <td className="px-3 py-1.5 text-gray-500">{tx.portfolioName}</td>
+                <td className="px-3 py-1.5 text-right">{tx.shares}</td>
+                <td className="px-3 py-1.5 text-right">{formatCurrency(tx.price_per_share)}</td>
+                <td className="px-3 py-1.5 text-right text-gray-400">{tx.fees > 0 ? formatCurrency(tx.fees) : '—'}</td>
+                <td className="px-3 py-1.5 text-right font-medium">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-gray-400 text-sm text-center py-8">No transactions match the current filters.</p>
+      )}
     </div>
   );
 }
