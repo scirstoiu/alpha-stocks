@@ -69,24 +69,17 @@ export default function PortfolioDetailPage({
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('positions');
-  const [sortColumn, setSortColumnState] = useState<string | null>(() => getSavedSort(id).column);
-  const [sortDirection, setSortDirectionState] = useState<'asc' | 'desc'>(() => getSavedSort(id).direction);
-  // Restore sort when switching between portfolios (id changes but component may reuse)
+  const [sortColumn, setSortColumnRaw] = useState<string | null>(() => getSavedSort(id).column);
+  const [sortDirection, setSortDirectionRaw] = useState<'asc' | 'desc'>(() => getSavedSort(id).direction);
   useEffect(() => {
     const saved = getSavedSort(id);
-    setSortColumnState(saved.column);
-    setSortDirectionState(saved.direction);
+    setSortColumnRaw(saved.column);
+    setSortDirectionRaw(saved.direction);
   }, [id]);
-  const setSortColumn = (col: string | null) => {
-    setSortColumnState(col);
-    saveSort(id, col, sortDirection);
-  };
-  const setSortDirection = (dir: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => {
-    setSortDirectionState((prev) => {
-      const next = typeof dir === 'function' ? dir(prev) : dir;
-      saveSort(id, sortColumn, next);
-      return next;
-    });
+  const setSort = (col: string | null, dir: 'asc' | 'desc') => {
+    setSortColumnRaw(col);
+    setSortDirectionRaw(dir);
+    saveSort(id, col, dir);
   };
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -289,10 +282,9 @@ export default function PortfolioDetailPage({
           sortDirection={sortDirection}
           onSort={(col) => {
             if (sortColumn === col) {
-              setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+              setSort(col, sortDirection === 'asc' ? 'desc' : 'asc');
             } else {
-              setSortColumn(col);
-              setSortDirection(col === 'symbol' ? 'asc' : 'desc');
+              setSort(col, col === 'symbol' ? 'asc' : 'desc');
             }
           }}
         />
