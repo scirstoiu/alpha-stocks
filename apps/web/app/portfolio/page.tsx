@@ -77,13 +77,14 @@ export default function PortfoliosPage() {
   }, [txResults]);
 
   // Single batch quote fetch for all symbols
-  const { data: allQuotes } = useStockQuotes(allSymbols);
+  const { data: allQuotes, isLoading: loadingQuotes } = useStockQuotes(allSymbols);
 
-  // Compute summaries for each portfolio
+  // Compute summaries for each portfolio (works with partial/empty quotes)
   const summaries = useMemo(() => {
     const map = new Map<string, PortfolioSummary>();
-    if (!allQuotes) return map;
-    const quoteMap = new Map(allQuotes.map((q) => [q.symbol, q]));
+    // Wait for at least one transaction result before computing
+    if (txResults.every((r) => !r.data)) return map;
+    const quoteMap = new Map((allQuotes || []).map((q) => [q.symbol, q]));
     for (let i = 0; i < portfolioIds.length; i++) {
       const transactions = txResults[i]?.data;
       if (!transactions) continue;

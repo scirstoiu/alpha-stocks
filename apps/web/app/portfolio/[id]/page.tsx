@@ -102,11 +102,12 @@ export default function PortfolioDetailPage({
     return [...new Set(transactions.map((t) => t.symbol))];
   }, [transactions]);
 
-  const { data: quotes } = useStockQuotes(symbols);
+  const { data: quotes, isLoading: loadingQuotes } = useStockQuotes(symbols);
 
   const summary = useMemo(() => {
-    if (!transactions || !quotes) return null;
-    const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+    if (!transactions) return null;
+    // Compute with whatever quotes we have (may be empty if providers are down)
+    const quoteMap = new Map((quotes || []).map((q) => [q.symbol, q]));
     return computePortfolioSummary(transactions, quoteMap);
   }, [transactions, quotes]);
 
@@ -229,6 +230,13 @@ export default function PortfolioDetailPage({
           </div>
         </form>
       </Modal>
+
+      {/* Quote unavailable warning */}
+      {!loadingQuotes && symbols.length > 0 && (!quotes || quotes.length === 0) && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-2 mb-4 text-sm">
+          Market data temporarily unavailable. Prices and P&L may be missing.
+        </div>
+      )}
 
       {/* Summary metrics */}
       {summary && (
