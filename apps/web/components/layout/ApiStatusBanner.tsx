@@ -2,12 +2,20 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+type ProviderStatus = 'up' | 'down' | 'not_configured';
+
 interface ApiStatus {
-  yahoo: boolean;
-  twelveData: boolean;
-  finnhub: boolean;
+  yahoo: ProviderStatus;
+  twelveData: ProviderStatus;
+  finnhub: ProviderStatus;
   checkedAt: number;
 }
+
+const PROVIDER_NAMES: { key: keyof Omit<ApiStatus, 'checkedAt'>; label: string }[] = [
+  { key: 'yahoo', label: 'Yahoo Finance' },
+  { key: 'twelveData', label: 'Twelve Data' },
+  { key: 'finnhub', label: 'Finnhub' },
+];
 
 export default function ApiStatusBanner() {
   const { data: status } = useQuery<ApiStatus>({
@@ -22,19 +30,18 @@ export default function ApiStatusBanner() {
     retry: 0,
   });
 
-  if (!status || (status.yahoo && status.twelveData && status.finnhub)) return null;
+  if (!status) return null;
 
-  const downProviders: string[] = [];
-  if (!status.yahoo) downProviders.push('Yahoo Finance');
-  if (!status.twelveData) downProviders.push('Twelve Data');
-  if (!status.finnhub) downProviders.push('Finnhub');
+  const downProviders = PROVIDER_NAMES.filter((p) => status[p.key] === 'down');
+  const configuredProviders = PROVIDER_NAMES.filter((p) => status[p.key] !== 'not_configured');
+  const anyUp = configuredProviders.some((p) => status[p.key] === 'up');
 
-  const anyUp = status.yahoo || status.twelveData || status.finnhub;
+  if (downProviders.length === 0) return null;
 
   return (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
       <span className="font-medium">Data provider issue:</span>{' '}
-      {downProviders.join(', ')}{' '}
+      {downProviders.map((p) => p.label).join(', ')}{' '}
       {downProviders.length === 1 ? 'is' : 'are'} currently unavailable.
       {anyUp
         ? ' Some data may be missing or delayed.'
