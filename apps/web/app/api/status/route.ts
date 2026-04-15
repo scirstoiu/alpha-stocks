@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createStockProvider } from '@alpha-stocks/core/providers';
-
-const provider = createStockProvider(process.env.FINNHUB_API_KEY);
 
 // Cache status for 60 seconds to avoid hammering providers
-let cachedStatus: { yahoo: boolean; finnhub: boolean; checkedAt: number } | null = null;
+let cachedStatus: { yahoo: boolean; twelveData: boolean; finnhub: boolean; checkedAt: number } | null = null;
 const CACHE_TTL = 60_000;
 
 export async function GET() {
@@ -15,6 +12,7 @@ export async function GET() {
   }
 
   let yahoo = false;
+  let twelveData = false;
   let finnhub = false;
 
   // Test Yahoo via a quick quote
@@ -27,6 +25,19 @@ export async function GET() {
     yahoo = false;
   }
 
+  // Test Twelve Data
+  if (process.env.TWELVE_DATA_API_KEY) {
+    try {
+      const res = await fetch(`https://api.twelvedata.com/quote?symbol=AAPL&apikey=${process.env.TWELVE_DATA_API_KEY}`);
+      if (res.ok) {
+        const data = await res.json();
+        twelveData = data.status !== 'error';
+      }
+    } catch {
+      twelveData = false;
+    }
+  }
+
   // Test Finnhub
   if (process.env.FINNHUB_API_KEY) {
     try {
@@ -37,7 +48,7 @@ export async function GET() {
     }
   }
 
-  cachedStatus = { yahoo, finnhub, checkedAt: now };
+  cachedStatus = { yahoo, twelveData, finnhub, checkedAt: now };
 
   return NextResponse.json(cachedStatus);
 }

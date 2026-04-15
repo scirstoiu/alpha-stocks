@@ -110,6 +110,7 @@ Migration files use timestamp format (e.g., `20240101000000_initial_schema.sql`)
 
 ```
 FINNHUB_API_KEY              — Finnhub free tier key (required for news/earnings/logos)
+TWELVE_DATA_API_KEY          — Twelve Data free tier key (800 credits/day, quote fallback)
 ALPHA_VANTAGE_API_KEY        — Alpha Vantage free tier key (10yr financial statements, 25 req/day)
 NEXT_PUBLIC_SUPABASE_URL     — Supabase project URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY — Supabase publishable key

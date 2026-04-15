@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createStockProvider } from '@alpha-stocks/core/providers';
 
-const provider = createStockProvider(process.env.FINNHUB_API_KEY);
+const provider = createStockProvider(process.env.FINNHUB_API_KEY, process.env.TWELVE_DATA_API_KEY);
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

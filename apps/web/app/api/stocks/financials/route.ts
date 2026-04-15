@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createStockProvider } from '@alpha-stocks/core/providers';
 import type { AnnualFinancial, QuarterlyEarning } from '@alpha-stocks/core';
 
-const provider = createStockProvider(process.env.FINNHUB_API_KEY);
+const provider = createStockProvider(process.env.FINNHUB_API_KEY, process.env.TWELVE_DATA_API_KEY);
 
 const CACHE_TTL_DAYS = 7;
 

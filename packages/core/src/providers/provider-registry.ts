@@ -1,36 +1,62 @@
 import type { IStockProvider, IMarketDataProvider } from '../types/provider';
 import { createYahooProvider } from './yahoo-provider';
 import { createFinnhubStockProvider, createFinnhubMarketDataProvider } from './finnhub-provider';
+import { createTwelveDataProvider } from './twelve-data-provider';
 
 /**
- * Creates a stock provider with yahoo as primary and finnhub as fallback.
+ * Creates a stock provider with fallback chain: Yahoo → Twelve Data → Finnhub.
  * Server-only — call this from Next.js API routes.
  */
-export function createStockProvider(finnhubApiKey?: string): IStockProvider {
+export function createStockProvider(finnhubApiKey?: string, twelveDataApiKey?: string): IStockProvider {
   const yahoo = createYahooProvider();
+  const twelveData = twelveDataApiKey ? createTwelveDataProvider(twelveDataApiKey) : null;
   const finnhub = finnhubApiKey ? createFinnhubStockProvider(finnhubApiKey) : null;
 
-  function withFallback<T>(primary: () => Promise<T>, fallback: (() => Promise<T>) | null): Promise<T> {
-    if (!fallback) return primary();
-    return primary().catch((err) => {
-      console.warn('Yahoo provider failed, falling back to Finnhub:', err.message);
-      return fallback();
-    });
+  function withFallbackChain<T>(...fns: ((() => Promise<T>) | null)[]): Promise<T> {
+    const valid = fns.filter(Boolean) as (() => Promise<T>)[];
+    if (valid.length === 0) return Promise.reject(new Error('No providers available'));
+    return valid.reduce((chain, fn, i) =>
+      chain.catch((err) => {
+        if (i > 0) console.warn(`Provider ${i} failed, trying next:`, err.message);
+        return fn();
+      }),
+    valid[0]().catch((err) => { console.warn('Primary provider failed:', err.message); throw err; }));
   }
 
   return {
     getQuote: (symbol) =>
-      withFallback(() => yahoo.getQuote(symbol), finnhub ? () => finnhub.getQuote(symbol) : null),
+      withFallbackChain(
+        () => yahoo.getQuote(symbol),
+        twelveData ? () => twelveData.getQuote(symbol) : null,
+        finnhub ? () => finnhub.getQuote(symbol) : null,
+      ),
     getQuotes: (symbols) =>
-      withFallback(() => yahoo.getQuotes(symbols), finnhub ? () => finnhub.getQuotes(symbols) : null),
+      withFallbackChain(
+        () => yahoo.getQuotes(symbols),
+        twelveData ? () => twelveData.getQuotes(symbols) : null,
+        finnhub ? () => finnhub.getQuotes(symbols) : null,
+      ),
     searchSymbols: (query) =>
-      withFallback(() => yahoo.searchSymbols(query), finnhub ? () => finnhub.searchSymbols(query) : null),
+      withFallbackChain(
+        () => yahoo.searchSymbols(query),
+        twelveData ? () => twelveData.searchSymbols(query) : null,
+        finnhub ? () => finnhub.searchSymbols(query) : null,
+      ),
     getHistoricalPrices: (symbol, range) =>
-      withFallback(() => yahoo.getHistoricalPrices(symbol, range), finnhub ? () => finnhub.getHistoricalPrices(symbol, range) : null),
+      withFallbackChain(
+        () => yahoo.getHistoricalPrices(symbol, range),
+        twelveData ? () => twelveData.getHistoricalPrices(symbol, range) : null,
+        finnhub ? () => finnhub.getHistoricalPrices(symbol, range) : null,
+      ),
     getCompanyProfile: (symbol) =>
-      withFallback(() => yahoo.getCompanyProfile(symbol), finnhub ? () => finnhub.getCompanyProfile(symbol) : null),
+      withFallbackChain(
+        () => yahoo.getCompanyProfile(symbol),
+        finnhub ? () => finnhub.getCompanyProfile(symbol) : null,
+      ),
     getFinancials: (symbol) =>
-      withFallback(() => yahoo.getFinancials(symbol), finnhub ? () => finnhub.getFinancials(symbol) : null),
+      withFallbackChain(
+        () => yahoo.getFinancials(symbol),
+      ),
   };
 }
 

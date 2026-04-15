@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createStockProvider } from '@alpha-stocks/core/providers';
 import type { HistoricalRange } from '@alpha-stocks/core';
 
-const provider = createStockProvider(process.env.FINNHUB_API_KEY);
+const provider = createStockProvider(process.env.FINNHUB_API_KEY, process.env.TWELVE_DATA_API_KEY);
 
 const VALID_RANGES = new Set(['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', 'ALL']);
 
