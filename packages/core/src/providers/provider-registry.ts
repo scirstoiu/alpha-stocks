@@ -15,12 +15,15 @@ export function createStockProvider(finnhubApiKey?: string, twelveDataApiKey?: s
   function withFallbackChain<T>(...fns: ((() => Promise<T>) | null)[]): Promise<T> {
     const valid = fns.filter(Boolean) as (() => Promise<T>)[];
     if (valid.length === 0) return Promise.reject(new Error('No providers available'));
-    return valid.reduce((chain, fn, i) =>
-      chain.catch((err) => {
-        if (i > 0) console.warn(`Provider ${i} failed, trying next:`, err.message);
-        return fn();
-      }),
-    valid[0]().catch((err) => { console.warn('Primary provider failed:', err.message); throw err; }));
+    let chain = valid[0]();
+    for (let i = 1; i < valid.length; i++) {
+      const next = valid[i];
+      chain = chain.catch((err) => {
+        console.warn(`Provider ${i - 1} failed, trying next:`, err.message);
+        return next();
+      });
+    }
+    return chain;
   }
 
   return {
