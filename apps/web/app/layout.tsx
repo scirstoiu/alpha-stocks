@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiClientContext, createApiClient } from '@alpha-stocks/core';
 import { useState } from 'react';
 import Header from '@/components/layout/Header';
+import ApiStatusBanner from '@/components/layout/ApiStatusBanner';
 import AuthProvider from '@/components/AuthProvider';
 
 const apiClient = createApiClient('');
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ApiClientContext value={apiClient}>
             <AuthProvider>
               <Header />
+              <ApiStatusBanner />
               <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
             </AuthProvider>
           </ApiClientContext>
