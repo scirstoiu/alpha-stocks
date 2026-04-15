@@ -11,8 +11,17 @@ export async function GET(request: NextRequest) {
   try {
     if (symbols) {
       const list = symbols.split(',').map((s) => s.trim().toUpperCase());
-      const quotes = await provider.getQuotes(list);
-      return NextResponse.json(quotes);
+      try {
+        const quotes = await provider.getQuotes(list);
+        return NextResponse.json(quotes);
+      } catch {
+        // Batch failed entirely — try individually with partial failure resilience
+        const results = await Promise.allSettled(list.map((s) => provider.getQuote(s)));
+        const quotes = results
+          .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof provider.getQuote>>> => r.status === 'fulfilled')
+          .map((r) => r.value);
+        return NextResponse.json(quotes);
+      }
     }
 
     if (!symbol) {
