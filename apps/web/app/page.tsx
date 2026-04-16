@@ -169,9 +169,12 @@ function WatchlistHighlights() {
         <StockLogo symbol={q.symbol} size={24} />
         <span className="font-semibold text-sm truncate">{q.symbol}</span>
       </div>
-      <span className={`text-sm font-semibold flex-shrink-0 ${q.changePercent >= 0 ? 'text-gain' : 'text-loss'}`}>
-        {formatPercent(q.changePercent)}
-      </span>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <span className="text-sm text-gray-500">{formatCurrency(q.price)}</span>
+        <span className={`text-sm font-semibold ${q.changePercent >= 0 ? 'text-gain' : 'text-loss'}`}>
+          {formatPercent(q.changePercent)}
+        </span>
+      </div>
     </Link>
   );
 
