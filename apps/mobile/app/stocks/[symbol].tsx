@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams } from 'expo-router';
-import { useStockQuote, useHistoricalPrices, useNews, formatCurrency, formatPercent, formatCompactNumber, type HistoricalRange, type NewsItem } from '@alpha-stocks/core';
+import { useStockQuote, useHistoricalPrices, useNews, formatCurrency, formatPrice, formatPercent, formatCompactNumber, isFxSymbol, type HistoricalRange, type NewsItem } from '@alpha-stocks/core';
 import { useState } from 'react';
 import StockLogo from '../../components/stocks/StockLogo';
 import StockFinancials from '../../components/stocks/StockFinancials';
@@ -18,7 +18,8 @@ const PADDING_TOP = 10;
 const PADDING_BOTTOM = 10;
 const NUM_TICKS = 5;
 
-function formatYLabel(value: number): string {
+function formatYLabel(value: number, isFx: boolean): string {
+  if (isFx) return value.toFixed(3);
   if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
   if (value >= 100) return `$${value.toFixed(0)}`;
   return `$${value.toFixed(2)}`;
@@ -26,6 +27,7 @@ function formatYLabel(value: number): string {
 
 function MiniChart({ symbol, range }: { symbol: string; range: HistoricalRange }) {
   const { data: prices, isLoading } = useHistoricalPrices(symbol, range);
+  const isFx = isFxSymbol(symbol);
 
   if (isLoading || !prices || prices.length === 0) {
     return (
@@ -69,7 +71,7 @@ function MiniChart({ symbol, range }: { symbol: string; range: HistoricalRange }
         ))}
         {ticks.map((tick, i) => (
           <SvgText key={`t${i}`} x={Y_LABEL_WIDTH - 6} y={tick.y + 4} fontSize={10} fill="#9ca3af" textAnchor="end">
-            {formatYLabel(tick.value)}
+            {formatYLabel(tick.value, isFx)}
           </SvgText>
         ))}
         {/* Price line */}
@@ -129,7 +131,7 @@ export default function StockDetailScreen() {
       </View>
 
       <View style={styles.priceRow}>
-        <Text style={styles.price}>{formatCurrency(quote.price)}</Text>
+        <Text style={styles.price}>{formatPrice(quote.price, quote.symbol)}</Text>
         <Text style={[styles.change, { color: isPositive ? '#16a34a' : '#dc2626' }]}>
           {isPositive ? '+' : ''}
           {quote.change.toFixed(2)} ({formatPercent(quote.changePercent)})
@@ -145,7 +147,7 @@ export default function StockDetailScreen() {
         return (
           <View style={styles.extRow}>
             <Text style={styles.extLabel}>{isPost ? 'After Hours' : 'Pre-Market'}</Text>
-            <Text style={styles.extPrice}>{formatCurrency(extPrice)}</Text>
+            <Text style={styles.extPrice}>{formatPrice(extPrice, quote.symbol)}</Text>
             <Text style={[styles.extChange, { color: extPositive ? '#16a34a' : '#dc2626' }]}>
               {extPositive ? '+' : ''}{extChange.toFixed(2)} ({formatPercent(extPercent)})
             </Text>
@@ -226,8 +228,8 @@ export default function StockDetailScreen() {
 
           {/* Stats */}
           <View style={styles.grid}>
-            <StatItem label="Open" value={formatCurrency(quote.open)} />
-            <StatItem label="Prev Close" value={formatCurrency(quote.previousClose)} />
+            <StatItem label="Open" value={formatPrice(quote.open, quote.symbol)} />
+            <StatItem label="Prev Close" value={formatPrice(quote.previousClose, quote.symbol)} />
             {quote.marketCap != null && <StatItem label="Market Cap" value={formatCompactNumber(quote.marketCap)} />}
             <StatItem label="Volume" value={formatCompactNumber(quote.volume)} />
             {quote.averageDailyVolume3Month != null && <StatItem label="Avg Volume" value={formatCompactNumber(quote.averageDailyVolume3Month)} />}

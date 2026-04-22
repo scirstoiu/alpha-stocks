@@ -36,4 +36,4 @@ export { usePortfolios, usePortfolio, useTransactions, useAllTransactions, useCr
 
 // Calculations
 export { computePositions, computePortfolioSummary, computeRealizedGains, computeTotalDividends } from './calculations/portfolio-metrics';
-export { formatCurrency, formatPercent, formatCompactNumber, formatDate } from './calculations/helpers';
+export { formatCurrency, formatPercent, formatCompactNumber, formatDate, formatPrice, isFxSymbol } from './calculations/helpers';
