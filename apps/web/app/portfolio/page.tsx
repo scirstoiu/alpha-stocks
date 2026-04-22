@@ -848,12 +848,15 @@ function TransactionReport({
     return filtered.reduce((sum, tx) => sum + tx.fees, 0);
   }, [filtered]);
 
+  const totalShares = useMemo(() => {
+    return filtered.reduce((sum, tx) => sum + tx.shares, 0);
+  }, [filtered]);
+
   const avgPrice = useMemo(() => {
     if (!symbolFilter.trim() || typeFilter === 'all') return null;
-    const totalShares = filtered.reduce((sum, tx) => sum + tx.shares, 0);
     if (totalShares === 0) return null;
     return totalAmount / totalShares;
-  }, [filtered, totalAmount, symbolFilter, typeFilter]);
+  }, [totalAmount, totalShares, symbolFilter, typeFilter]);
 
   return (
     <div>
@@ -957,6 +960,7 @@ function TransactionReport({
           </div>
           <div className="flex gap-5 text-sm text-gray-500 items-baseline">
             <span><strong className="text-gray-800">{filtered.length}</strong> transactions</span>
+            <span>Shares: <strong className="text-gray-800">{totalShares.toLocaleString()}</strong></span>
             <span>Total: <strong className="text-gray-800">{formatCurrency(totalAmount)}</strong></span>
             {avgPrice !== null && <span>Avg Price: <strong className="text-gray-800">{formatCurrency(avgPrice)}</strong></span>}
             {totalFees > 0 && <span>Fees: <strong className="text-gray-800">{formatCurrency(totalFees)}</strong></span>}
