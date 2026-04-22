@@ -24,6 +24,7 @@ const INDICES = {
   ],
   currencies: [
     { symbol: 'EURUSD=X', name: 'EUR/USD' },
+    { symbol: 'RON=X', name: 'USD/RON' },
     { symbol: 'EURRON=X', name: 'EUR/RON' },
     { symbol: 'GBPUSD=X', name: 'GBP/USD' },
     { symbol: 'JPY=X', name: 'USD/JPY' },
@@ -35,9 +36,9 @@ describe('Market indices configuration', () => {
     expect(Object.keys(INDICES)).toEqual(['us', 'europe', 'asia', 'currencies']);
   });
 
-  it('has EUR/RON as second currency', () => {
+  it('has USD/RON as second currency', () => {
     expect(INDICES.currencies[0].symbol).toBe('EURUSD=X');
-    expect(INDICES.currencies[1].symbol).toBe('EURRON=X');
+    expect(INDICES.currencies[1].symbol).toBe('RON=X');
   });
 
   it('all currency symbols end with =X', () => {
