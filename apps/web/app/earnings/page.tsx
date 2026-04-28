@@ -15,6 +15,7 @@ import {
 } from '@alpha-stocks/core';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
+import StockLogo from '@/components/stocks/StockLogo';
 
 function getDateRange() {
   const from = new Date();
@@ -127,7 +128,8 @@ export default function EarningsPage() {
               <tr key={`${e.symbol}-${e.date}-${i}`} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-2">{formatDate(e.date)}</td>
                 <td className="px-4 py-2">
-                  <Link href={`/stocks/${e.symbol}`} target="_blank" className="font-medium text-primary hover:underline">
+                  <Link href={`/stocks/${e.symbol}`} target="_blank" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">
+                    <StockLogo symbol={e.symbol} size={20} />
                     {e.symbol}
                   </Link>
                 </td>
