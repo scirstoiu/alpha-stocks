@@ -7,9 +7,11 @@ import {
   useEarningsCalendar,
   useWatchlists,
   usePortfolios,
-  useTransactions,
+  useAllTransactions,
+  useStockQuotes,
   formatCurrency,
   formatDate,
+  type EarningsEvent,
 } from '@alpha-stocks/core';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
@@ -17,7 +19,7 @@ import Skeleton from '@/components/ui/Skeleton';
 function getDateRange() {
   const from = new Date();
   const to = new Date();
-  to.setDate(to.getDate() + 14);
+  to.setDate(to.getDate() + 30);
   return {
     from: from.toISOString().split('T')[0],
     to: to.toISOString().split('T')[0],
@@ -27,24 +29,65 @@ function getDateRange() {
 export default function EarningsPage() {
   useTitle('Earnings');
   const { from, to } = useMemo(getDateRange, []);
-  const { data: earnings, isLoading } = useEarningsCalendar(from, to);
+  const { data: earnings, isLoading: loadingEarnings } = useEarningsCalendar(from, to);
   const { data: watchlists } = useWatchlists();
+  const { data: portfolios } = usePortfolios();
+  const portfolioIds = useMemo(() => (portfolios || []).map((p) => p.id), [portfolios]);
+  const txResults = useAllTransactions(portfolioIds);
 
-  // Collect all symbols from watchlists
+  // Collect symbols from both watchlists and portfolios
   const mySymbols = useMemo(() => {
-    const symbols = new Set<string>();
-    watchlists?.forEach((wl) => {
-      wl.items?.forEach((item) => symbols.add(item.symbol));
-    });
-    return symbols;
-  }, [watchlists]);
+    const s = new Set<string>();
+    watchlists?.forEach((wl) => wl.items?.forEach((i) => s.add(i.symbol)));
+    for (const result of txResults) {
+      if (result.data) for (const t of result.data) s.add(t.symbol);
+    }
+    return [...s];
+  }, [watchlists, txResults]);
 
-  // Filter earnings to show user's tickers first, then the rest
-  const { myEarnings, otherEarnings } = useMemo(() => {
-    if (!earnings) return { myEarnings: [], otherEarnings: [] };
-    const my = earnings.filter((e) => mySymbols.has(e.symbol));
-    const other = earnings.filter((e) => !mySymbols.has(e.symbol));
-    return { myEarnings: my, otherEarnings: other.slice(0, 50) };
+  const { data: quotes, isLoading: loadingQuotes } = useStockQuotes(mySymbols);
+  const isLoading = loadingEarnings || loadingQuotes;
+
+  // My earnings: derive from Yahoo earningsTimestamp (reliable for major US stocks),
+  // enrich with Finnhub EPS/revenue when available.
+  const myEarnings = useMemo(() => {
+    if (!quotes) return [];
+    const now = Date.now();
+    const cutoffMs = now + 30 * 86400000;
+    const finnhubBySymbol = new Map<string, EarningsEvent>();
+    earnings?.forEach((e) => {
+      if (!finnhubBySymbol.has(e.symbol)) finnhubBySymbol.set(e.symbol, e);
+    });
+    const seen = new Set<string>();
+    return quotes
+      .filter((q) => q.earningsTimestamp != null && q.earningsTimestamp > now && q.earningsTimestamp < cutoffMs)
+      .map((q) => {
+        const date = new Date(q.earningsTimestamp!).toISOString().split('T')[0];
+        const enriched = finnhubBySymbol.get(q.symbol);
+        return {
+          symbol: q.symbol,
+          date,
+          hour: enriched?.hour ?? 'unknown',
+          epsEstimate: enriched?.epsEstimate ?? null,
+          epsActual: enriched?.epsActual ?? null,
+          revenueEstimate: enriched?.revenueEstimate ?? null,
+          name: q.name,
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((e) => {
+        // Deduplicate by name (e.g. GOOG and GOOGL are both "Alphabet Inc.")
+        const key = e.name.toLowerCase().replace(/[^a-z]/g, '');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [quotes, earnings]);
+
+  const otherEarnings = useMemo(() => {
+    if (!earnings) return [];
+    const mySet = new Set(mySymbols);
+    return earnings.filter((e) => !mySet.has(e.symbol)).slice(0, 50);
   }, [earnings, mySymbols]);
 
   const hourLabel: Record<string, string> = {
@@ -54,7 +97,16 @@ export default function EarningsPage() {
     unknown: '—',
   };
 
-  function renderTable(items: typeof myEarnings, title: string) {
+  type EarningsRow = {
+    symbol: string;
+    date: string;
+    hour: string;
+    epsEstimate?: number | null;
+    epsActual?: number | null;
+    revenueEstimate?: number | null;
+  };
+
+  function renderTable(items: EarningsRow[], title: string) {
     if (items.length === 0) return null;
     return (
       <Card className="overflow-hidden p-0 mb-6">
@@ -94,7 +146,7 @@ export default function EarningsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">Earnings Calendar</h1>
-      <p className="text-sm text-gray-500 mb-6">Next 2 weeks ({from} to {to})</p>
+      <p className="text-sm text-gray-500 mb-6">Next 30 days ({from} to {to})</p>
 
       {isLoading && (
         <div className="space-y-2">
