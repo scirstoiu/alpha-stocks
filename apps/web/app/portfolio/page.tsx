@@ -858,6 +858,54 @@ function TransactionReport({
     return totalAmount / totalShares;
   }, [totalAmount, totalShares, symbolFilter, typeFilter]);
 
+  // Aggregated P&L: realized gains on filtered sells + filtered dividends.
+  // Cost basis is built from the full timeline within the portfolio+symbol scope,
+  // so per-period or buy/sell-only filters give correct realized numbers.
+  const aggregatedPnL = useMemo(() => {
+    let scope = transactions;
+    if (selectedPortfolios.size > 0) {
+      scope = scope.filter((tx) => selectedPortfolios.has(tx.portfolio_id));
+    }
+    if (symbolFilter.trim()) {
+      const sym = symbolFilter.trim().toUpperCase();
+      scope = scope.filter((tx) => tx.symbol.includes(sym));
+    }
+
+    const sorted = [...scope].sort((a, b) => a.date.localeCompare(b.date));
+    const filteredIds = new Set(filtered.map((tx) => tx.id));
+
+    let realized = 0;
+    let dividends = 0;
+    const holdings = new Map<string, { shares: number; totalCost: number }>();
+
+    for (const tx of sorted) {
+      const inFilter = filteredIds.has(tx.id);
+
+      if (tx.type === 'dividend') {
+        if (inFilter) dividends += tx.shares * tx.price_per_share;
+        continue;
+      }
+
+      const current = holdings.get(tx.symbol) || { shares: 0, totalCost: 0 };
+
+      if (tx.type === 'buy') {
+        current.totalCost += tx.shares * tx.price_per_share + tx.fees;
+        current.shares += tx.shares;
+      } else if (tx.type === 'sell' && current.shares > 0) {
+        const avgCost = current.totalCost / current.shares;
+        const costOfSold = tx.shares * avgCost;
+        const proceeds = tx.shares * tx.price_per_share - tx.fees;
+        if (inFilter) realized += proceeds - costOfSold;
+        current.totalCost -= costOfSold;
+        current.shares -= tx.shares;
+      }
+
+      holdings.set(tx.symbol, current);
+    }
+
+    return { realized, dividends, total: realized + dividends };
+  }, [transactions, filtered, selectedPortfolios, symbolFilter]);
+
   return (
     <div>
       {/* Filters + Summary */}
@@ -963,6 +1011,14 @@ function TransactionReport({
             <span>Shares: <strong className="text-gray-800">{totalShares.toLocaleString()}</strong></span>
             <span>Total: <strong className="text-gray-800">{formatCurrency(totalAmount)}</strong></span>
             {avgPrice !== null && <span>Avg Price: <strong className="text-gray-800">{formatCurrency(avgPrice)}</strong></span>}
+            {(aggregatedPnL.realized !== 0 || aggregatedPnL.dividends !== 0) && (
+              <span>
+                P&amp;L:{' '}
+                <strong className={aggregatedPnL.total >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {formatCurrency(aggregatedPnL.total)}
+                </strong>
+              </span>
+            )}
             {totalFees > 0 && <span>Fees: <strong className="text-gray-800">{formatCurrency(totalFees)}</strong></span>}
           </div>
         </div>
