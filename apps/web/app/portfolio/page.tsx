@@ -862,7 +862,7 @@ function TransactionReport({
   // over the filtered set. Cost basis is built from the full timeline within the
   // portfolio+symbol scope, so period or buy/sell-only filters still give correct
   // realized numbers.
-  const { aggregatedPnL, pnlByTxId } = useMemo(() => {
+  const { aggregatedPnL, pnlByTxId, avgCostByTxId } = useMemo(() => {
     let scope = transactions;
     if (selectedPortfolios.size > 0) {
       scope = scope.filter((tx) => selectedPortfolios.has(tx.portfolio_id));
@@ -875,6 +875,7 @@ function TransactionReport({
     const sorted = [...scope].sort((a, b) => a.date.localeCompare(b.date));
     const filteredIds = new Set(filtered.map((tx) => tx.id));
     const pnlByTxId = new Map<string, number>();
+    const avgCostByTxId = new Map<string, number>();
 
     let realized = 0;
     let dividends = 0;
@@ -895,8 +896,10 @@ function TransactionReport({
       if (tx.type === 'buy') {
         current.totalCost += tx.shares * tx.price_per_share + tx.fees;
         current.shares += tx.shares;
+        if (current.shares > 0) avgCostByTxId.set(tx.id, current.totalCost / current.shares);
       } else if (tx.type === 'sell' && current.shares > 0) {
         const avgCost = current.totalCost / current.shares;
+        avgCostByTxId.set(tx.id, avgCost);
         const costOfSold = tx.shares * avgCost;
         const proceeds = tx.shares * tx.price_per_share - tx.fees;
         const gain = proceeds - costOfSold;
@@ -912,6 +915,7 @@ function TransactionReport({
     return {
       aggregatedPnL: { realized, dividends, total: realized + dividends },
       pnlByTxId,
+      avgCostByTxId,
     };
   }, [transactions, filtered, selectedPortfolios, symbolFilter]);
 
@@ -1043,6 +1047,7 @@ function TransactionReport({
               <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Symbol</th>
               <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Portfolio</th>
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Shares</th>
+              <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Avg Cost</th>
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Price</th>
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Fees</th>
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Total</th>
@@ -1071,6 +1076,7 @@ function TransactionReport({
                 </td>
                 <td className="px-3 py-1.5 text-gray-500">{tx.portfolioName}</td>
                 <td className="px-3 py-1.5 text-right">{tx.shares}</td>
+                <td className="px-3 py-1.5 text-right text-gray-500">{avgCostByTxId.has(tx.id) ? formatCurrency(avgCostByTxId.get(tx.id)!) : '—'}</td>
                 <td className="px-3 py-1.5 text-right">{formatCurrency(tx.price_per_share)}</td>
                 <td className="px-3 py-1.5 text-right text-gray-400">{tx.fees > 0 ? formatCurrency(tx.fees) : '—'}</td>
                 <td className="px-3 py-1.5 text-right font-medium">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
