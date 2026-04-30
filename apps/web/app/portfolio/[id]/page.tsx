@@ -13,6 +13,7 @@ import {
   useRenamePortfolio,
   useDeletePortfolio,
   useStockQuotes,
+  useStockSearch,
   useHistoricalPrices,
   computePortfolioSummary,
   formatCurrency,
@@ -710,6 +711,25 @@ function TransactionModal({
   };
 
   const [form, setForm] = useState(defaultForm);
+  const [symbolDebounced, setSymbolDebounced] = useState('');
+  const [symbolDropdownOpen, setSymbolDropdownOpen] = useState(false);
+  const symbolWrapperRef = useRef<HTMLDivElement>(null);
+  const { data: symbolSuggestions, isLoading: searchingSymbols } = useStockSearch(symbolDebounced);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSymbolDebounced(form.symbol), 250);
+    return () => clearTimeout(timer);
+  }, [form.symbol]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (symbolWrapperRef.current && !symbolWrapperRef.current.contains(e.target as Node)) {
+        setSymbolDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (mode === 'edit' && transaction) {
@@ -722,8 +742,10 @@ function TransactionModal({
         date: transaction.date.split('T')[0],
         notes: transaction.notes || '',
       });
+      setSymbolDropdownOpen(false);
     } else if (mode === 'add') {
       setForm(defaultForm);
+      setSymbolDropdownOpen(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, transaction?.id]);
@@ -773,14 +795,50 @@ function TransactionModal({
             </button>
           ))}
         </div>
-        <input
-          type="text"
-          value={form.symbol}
-          onChange={(e) => setForm((f) => ({ ...f, symbol: e.target.value.toUpperCase() }))}
-          placeholder="Symbol (e.g. AAPL)"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          required
-        />
+        <div ref={symbolWrapperRef} className="relative">
+          <input
+            type="text"
+            value={form.symbol}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, symbol: e.target.value.toUpperCase() }));
+              setSymbolDropdownOpen(true);
+            }}
+            onFocus={() => setSymbolDropdownOpen(true)}
+            placeholder="Symbol (e.g. AAPL)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            autoComplete="off"
+            required
+          />
+          {symbolDropdownOpen && symbolDebounced.length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto">
+              {searchingSymbols && (
+                <div className="px-4 py-2 text-sm text-gray-500">Searching...</div>
+              )}
+              {!searchingSymbols && symbolSuggestions && symbolSuggestions.length === 0 && (
+                <div className="px-4 py-2 text-sm text-gray-500">No matches</div>
+              )}
+              {symbolSuggestions?.map((s) => (
+                <button
+                  key={s.symbol}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setForm((f) => ({ ...f, symbol: s.symbol }));
+                    setSymbolDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-0"
+                >
+                  <StockLogo symbol={s.symbol} size={20} />
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium">{s.symbol}</span>
+                    <span className="text-sm text-gray-500 ml-2 truncate">{s.name}</span>
+                  </div>
+                  <span className="text-xs text-gray-400 uppercase">{s.type}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2">
           <input
             type="number"
