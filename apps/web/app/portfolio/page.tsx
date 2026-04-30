@@ -858,10 +858,11 @@ function TransactionReport({
     return totalAmount / totalShares;
   }, [totalAmount, totalShares, symbolFilter, typeFilter]);
 
-  // Aggregated P&L: realized gains on filtered sells + filtered dividends.
-  // Cost basis is built from the full timeline within the portfolio+symbol scope,
-  // so per-period or buy/sell-only filters give correct realized numbers.
-  const aggregatedPnL = useMemo(() => {
+  // Per-transaction P&L (realized on sells, income on dividends) and aggregate
+  // over the filtered set. Cost basis is built from the full timeline within the
+  // portfolio+symbol scope, so period or buy/sell-only filters still give correct
+  // realized numbers.
+  const { aggregatedPnL, pnlByTxId } = useMemo(() => {
     let scope = transactions;
     if (selectedPortfolios.size > 0) {
       scope = scope.filter((tx) => selectedPortfolios.has(tx.portfolio_id));
@@ -873,6 +874,7 @@ function TransactionReport({
 
     const sorted = [...scope].sort((a, b) => a.date.localeCompare(b.date));
     const filteredIds = new Set(filtered.map((tx) => tx.id));
+    const pnlByTxId = new Map<string, number>();
 
     let realized = 0;
     let dividends = 0;
@@ -882,7 +884,9 @@ function TransactionReport({
       const inFilter = filteredIds.has(tx.id);
 
       if (tx.type === 'dividend') {
-        if (inFilter) dividends += tx.shares * tx.price_per_share;
+        const div = tx.shares * tx.price_per_share;
+        pnlByTxId.set(tx.id, div);
+        if (inFilter) dividends += div;
         continue;
       }
 
@@ -895,7 +899,9 @@ function TransactionReport({
         const avgCost = current.totalCost / current.shares;
         const costOfSold = tx.shares * avgCost;
         const proceeds = tx.shares * tx.price_per_share - tx.fees;
-        if (inFilter) realized += proceeds - costOfSold;
+        const gain = proceeds - costOfSold;
+        pnlByTxId.set(tx.id, gain);
+        if (inFilter) realized += gain;
         current.totalCost -= costOfSold;
         current.shares -= tx.shares;
       }
@@ -903,7 +909,10 @@ function TransactionReport({
       holdings.set(tx.symbol, current);
     }
 
-    return { realized, dividends, total: realized + dividends };
+    return {
+      aggregatedPnL: { realized, dividends, total: realized + dividends },
+      pnlByTxId,
+    };
   }, [transactions, filtered, selectedPortfolios, symbolFilter]);
 
   return (
@@ -1037,6 +1046,7 @@ function TransactionReport({
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Price</th>
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Fees</th>
               <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">Total</th>
+              <th className="text-right px-3 py-1.5 font-medium text-gray-400 text-xs">P&amp;L</th>
               {filtered[0]?.notes && <th className="text-left px-3 py-1.5 font-medium text-gray-400 text-xs">Notes</th>}
             </tr>
           </thead>
@@ -1064,6 +1074,13 @@ function TransactionReport({
                 <td className="px-3 py-1.5 text-right">{formatCurrency(tx.price_per_share)}</td>
                 <td className="px-3 py-1.5 text-right text-gray-400">{tx.fees > 0 ? formatCurrency(tx.fees) : '—'}</td>
                 <td className="px-3 py-1.5 text-right font-medium">{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</td>
+                <td className={`px-3 py-1.5 text-right font-medium ${
+                  pnlByTxId.has(tx.id)
+                    ? (pnlByTxId.get(tx.id)! >= 0 ? 'text-green-600' : 'text-red-600')
+                    : 'text-gray-400'
+                }`}>
+                  {pnlByTxId.has(tx.id) ? formatCurrency(pnlByTxId.get(tx.id)!) : '—'}
+                </td>
               </tr>
             ))}
           </tbody>
