@@ -495,6 +495,65 @@ function TransactionReport({
   const totalAmount = useMemo(() => filtered.reduce((sum, tx) => sum + tx.shares * tx.price_per_share, 0), [filtered]);
   const totalFees = useMemo(() => filtered.reduce((sum, tx) => sum + tx.fees, 0), [filtered]);
 
+  // Per-tx P&L + running avg cost. Cost basis built from full timeline within
+  // portfolio+symbol scope, so period/type filters don't break realized numbers.
+  const { aggregatedPnL, pnlByTxId, avgCostByTxId } = useMemo(() => {
+    let scope = transactions;
+    if (selectedPortfolios.size > 0) {
+      scope = scope.filter((tx) => selectedPortfolios.has(tx.portfolio_id));
+    }
+    if (symbolFilter.trim()) {
+      const sym = symbolFilter.trim().toUpperCase();
+      scope = scope.filter((tx) => tx.symbol.includes(sym));
+    }
+
+    const sorted = [...scope].sort((a, b) => a.date.localeCompare(b.date));
+    const filteredIds = new Set(filtered.map((tx) => tx.id));
+    const pnlByTxId = new Map<string, number>();
+    const avgCostByTxId = new Map<string, number>();
+
+    let realized = 0;
+    let dividends = 0;
+    const holdings = new Map<string, { shares: number; totalCost: number }>();
+
+    for (const tx of sorted) {
+      const inFilter = filteredIds.has(tx.id);
+
+      if (tx.type === 'dividend') {
+        const div = tx.shares * tx.price_per_share;
+        pnlByTxId.set(tx.id, div);
+        if (inFilter) dividends += div;
+        continue;
+      }
+
+      const current = holdings.get(tx.symbol) || { shares: 0, totalCost: 0 };
+
+      if (tx.type === 'buy') {
+        current.totalCost += tx.shares * tx.price_per_share + tx.fees;
+        current.shares += tx.shares;
+        if (current.shares > 0) avgCostByTxId.set(tx.id, current.totalCost / current.shares);
+      } else if (tx.type === 'sell' && current.shares > 0) {
+        const avgCost = current.totalCost / current.shares;
+        avgCostByTxId.set(tx.id, avgCost);
+        const costOfSold = tx.shares * avgCost;
+        const proceeds = tx.shares * tx.price_per_share - tx.fees;
+        const gain = proceeds - costOfSold;
+        pnlByTxId.set(tx.id, gain);
+        if (inFilter) realized += gain;
+        current.totalCost -= costOfSold;
+        current.shares -= tx.shares;
+      }
+
+      holdings.set(tx.symbol, current);
+    }
+
+    return {
+      aggregatedPnL: { realized, dividends, total: realized + dividends },
+      pnlByTxId,
+      avgCostByTxId,
+    };
+  }, [transactions, filtered, selectedPortfolios, symbolFilter]);
+
   return (
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Period pills */}
@@ -559,6 +618,14 @@ function TransactionReport({
       <View style={rStyles.summary}>
         <Text style={rStyles.summaryText}><Text style={rStyles.summaryBold}>{filtered.length}</Text> transactions</Text>
         <Text style={rStyles.summaryText}>Total: <Text style={rStyles.summaryBold}>{formatCurrency(totalAmount)}</Text></Text>
+        {(aggregatedPnL.realized !== 0 || aggregatedPnL.dividends !== 0) && (
+          <Text style={rStyles.summaryText}>
+            P&L:{' '}
+            <Text style={[rStyles.summaryBold, { color: aggregatedPnL.total >= 0 ? '#16a34a' : '#dc2626' }]}>
+              {formatCurrency(aggregatedPnL.total)}
+            </Text>
+          </Text>
+        )}
         {totalFees > 0 && <Text style={rStyles.summaryText}>Fees: <Text style={rStyles.summaryBold}>{formatCurrency(totalFees)}</Text></Text>}
       </View>
 
@@ -582,6 +649,14 @@ function TransactionReport({
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={rStyles.txAmount}>{formatCurrency(tx.shares * tx.price_per_share + tx.fees)}</Text>
               <Text style={rStyles.txDetail}>{tx.shares} @ {formatCurrency(tx.price_per_share)}</Text>
+              {avgCostByTxId.has(tx.id) && (
+                <Text style={rStyles.txDetail}>Avg {formatCurrency(avgCostByTxId.get(tx.id)!)}</Text>
+              )}
+              {pnlByTxId.has(tx.id) && (
+                <Text style={[rStyles.txPnL, { color: pnlByTxId.get(tx.id)! >= 0 ? '#16a34a' : '#dc2626' }]}>
+                  P&L {pnlByTxId.get(tx.id)! >= 0 ? '+' : ''}{formatCurrency(pnlByTxId.get(tx.id)!)}
+                </Text>
+              )}
             </View>
           </View>
         ))
@@ -606,7 +681,7 @@ const rStyles = StyleSheet.create({
   clearBtn: { paddingHorizontal: 12, paddingVertical: 6, justifyContent: 'center' },
   clearBtnText: { fontSize: 12, color: '#2563eb', fontWeight: '600' },
   searchInput: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, backgroundColor: '#fff', marginBottom: 8 },
-  summary: { flexDirection: 'row', gap: 16, paddingVertical: 8, marginBottom: 4 },
+  summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingVertical: 8, marginBottom: 4 },
   summaryText: { fontSize: 13, color: '#6b7280' },
   summaryBold: { fontWeight: '700', color: '#111827' },
   txRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6 },
@@ -617,6 +692,7 @@ const rStyles = StyleSheet.create({
   txMeta: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
   txAmount: { fontWeight: '600', fontSize: 14 },
   txDetail: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  txPnL: { fontSize: 12, fontWeight: '600', marginTop: 2 },
 });
 
 const styles = StyleSheet.create({
