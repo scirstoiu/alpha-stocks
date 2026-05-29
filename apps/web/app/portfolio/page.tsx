@@ -8,6 +8,7 @@ import {
   useReorderPortfolios,
   useAllTransactions,
   useStockQuotes,
+  useEurUsdRate,
   useAllHistoricalPrices,
   computePortfolioSummary,
   computePositions,
@@ -111,6 +112,8 @@ export default function PortfoliosPage() {
     return { total, dayChange, dayChangePercent: total > 0 ? (dayChange / (total - dayChange)) * 100 : 0 };
   }, [summaries]);
 
+  const { usdToEur } = useEurUsdRate();
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
@@ -177,6 +180,9 @@ export default function PortfoliosPage() {
         <div className="mb-4 bg-gradient-to-r from-gray-50 to-white rounded-xl px-6 py-4 border border-gray-100 flex items-baseline gap-4">
           <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Total Holdings</span>
           <span className="text-xl font-bold">{formatCurrency(totalValue.total)}</span>
+          {usdToEur && (
+            <span className="text-sm font-medium text-gray-400">≈ {formatCurrency(usdToEur(totalValue.total), 'EUR')}</span>
+          )}
           <span className={`text-sm font-medium ${totalValue.dayChange >= 0 ? 'text-gain' : 'text-loss'}`}>
             {totalValue.dayChange >= 0 ? '+' : ''}{formatCurrency(totalValue.dayChange)} ({formatPercent(totalValue.dayChangePercent)}) today
           </span>

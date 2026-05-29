@@ -9,6 +9,7 @@ import {
   useDeletePortfolio,
   useAllTransactions,
   useStockQuotes,
+  useEurUsdRate,
   computePortfolioSummary,
   formatCurrency,
   formatPercent,
@@ -311,6 +312,8 @@ export default function PortfolioScreen() {
     return { value, dayChange, pct: value > 0 ? (dayChange / (value - dayChange)) * 100 : 0 };
   }, [summaries]);
 
+  const { usdToEur } = useEurUsdRate();
+
   async function handleCreate() {
     if (!newName.trim()) return;
     await createPortfolio.mutateAsync({ name: newName.trim() });
@@ -350,6 +353,9 @@ export default function PortfolioScreen() {
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Holdings</Text>
           <Text style={styles.totalValue}>{formatCurrency(totals.value)}</Text>
+          {usdToEur && (
+            <Text style={styles.totalValueEur}>≈ {formatCurrency(usdToEur(totals.value), 'EUR')}</Text>
+          )}
           <Text style={[styles.totalChange, { color: totals.dayChange >= 0 ? '#4ade80' : '#f87171' }]}>
             {totals.dayChange >= 0 ? '+' : ''}{formatCurrency(totals.dayChange)} ({formatPercent(totals.pct)}) today
           </Text>
@@ -700,6 +706,7 @@ const styles = StyleSheet.create({
   totalCard: { backgroundColor: '#111827', padding: 20, borderRadius: 12, marginBottom: 16 },
   totalLabel: { fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   totalValue: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  totalValueEur: { fontSize: 14, fontWeight: '600', color: '#9ca3af', marginTop: 2 },
   totalChange: { fontSize: 15, fontWeight: '600', marginTop: 4 },
   tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginBottom: 12 },
   tab: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },

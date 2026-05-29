@@ -19,6 +19,7 @@ export { AuthContext, useAuth, type AuthContext as AuthContextType } from './hoo
 
 // Market data hooks
 export { useStockQuote, useStockQuotes } from './hooks/use-stock-quote';
+export { useEurUsdRate } from './hooks/use-fx-rate';
 export { useStockSearch } from './hooks/use-stock-search';
 export { useStockLogo } from './hooks/use-stock-logo';
 export { useHistoricalPrices, useAllHistoricalPrices } from './hooks/use-historical-prices';
